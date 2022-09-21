@@ -1,0 +1,21 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+manifest:
+  self:
+    path: helium_mapper
+
+  remotes:
+    - name: retfie
+      url-base: https://github.com/retfie
+
+  projects:
+    - name: zephyr
+      remote: retfie
+      revision: lis2dh_high_pass_filter
+      import:
+        name-allowlist:
+          - cmsis
+          - hal_nordic
+          - segger
+          - tinycrypt
