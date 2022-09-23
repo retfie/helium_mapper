@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) 2019 Vestas Wind Systems A/S
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+		zephyr,shell-uart = &cdc_acm_uart0;
+	};
+
+	aliases {
+		green-led = &green_led;
+		blue-led = &blue_led;
+		accel0 = &lis3dh;
+		gps0 = &max7q;
+	};
+
+	vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&adc 3>;
+		output-ohms = <1500000>;
+		full-ohms = <(1000000 + 1500000)>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+
+	/* ST Microelectronics LIS3DH motion sensor */
+	lis3dh: lis3dh@18 {
+		compatible = "st,lis3dh", "st,lis2dh";
+		reg = <0x18>;
+		irq-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+		anym-on-int1;
+	};
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <9600>;
+
+	max7q: max7q {
+		compatible = "u-blox,max7q";
+		status = "okay";
+		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
