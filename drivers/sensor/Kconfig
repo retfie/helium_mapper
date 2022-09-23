@@ -1,1 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+
+if SENSOR
+rsource "max7q/Kconfig"
+endif # SENSOR

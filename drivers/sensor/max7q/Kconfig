@@ -1,0 +1,16 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config UBLOX_MAX7Q
+       bool "u-blox max-7q gps driver"
+       help
+         Enable driver for u-blox max-7q gps module
+
+if UBLOX_MAX7Q
+
+config MAX7Q_POWER_ENABLE
+       bool "u-blox max-7q enable gpio"
+       help
+         Enable gpio for u-blox max-7q gps module
+
+endif

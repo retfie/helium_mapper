@@ -1,0 +1,15 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+
+description: u-blox MAX-7Q gps module support
+
+compatible: "u-blox,max7q"
+
+include: uart-device.yaml
+
+properties:
+  enable-gpios:
+    type: phandle-array
+    required: false
+    description: |
+      Optional gpio to enable GPS module
