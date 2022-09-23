@@ -6,3 +6,5 @@
 # module options by going to Zephyr -> Modules in Kconfig.
 
 rsource "drivers/Kconfig"
+rsource "subsys/bluetooth/services/Kconfig.nus"
+rsource "subsys/shell/modules/Kconfig"

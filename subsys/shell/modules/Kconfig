@@ -1,0 +1,4 @@
+
+if BT
+rsource "Kconfig.bt_nus_shell"
+endif # BT

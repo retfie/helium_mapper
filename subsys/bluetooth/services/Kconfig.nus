@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2019 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config BT_NUS
+	bool "Nordic UART service"
+	help
+	  Enable Nordic UART service.
+
+if BT_NUS
+
+module = BT_NUS
+module-str = NUS
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # BT_NUS
