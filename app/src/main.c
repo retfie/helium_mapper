@@ -422,6 +422,17 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 			LOG_ERR("Accel: cannot set slope duration.\n");
 			return err;
 		}
+
+#if CONFIG_LIS2DH_ACCEL_HP_FILTERS
+		/* Set High Pass filter for int 1 */
+		attr.val1 = 1U;
+		attr.val2 = 0;
+		if (sensor_attr_set(accel_dev, chan,
+					SENSOR_ATTR_CONFIGURATION, &attr) < 0) {
+			LOG_ERR("Accel: cannot set high pass filter for int 1.");
+			return err;
+		}
+#endif
 	}
 
 	trig.type = SENSOR_TRIG_DELTA;
