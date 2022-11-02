@@ -564,6 +564,19 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	lorawan_status.last_pos_send = k_uptime_get();
 }
 
+void shell_cb(enum shell_cmd_event event, void *data) {
+	struct s_helium_mapper_ctx *ctx = (struct s_helium_mapper_ctx *)data;
+
+	switch (event) {
+	case SHELL_CMD_SEND_TIMER:
+		update_send_timer(ctx);
+		break;
+	default:
+		LOG_WRN("Unknown shell cmd event");
+		break;
+	} /* switch */
+}
+
 void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 {
 	switch (ev->event_type) {
@@ -640,6 +653,8 @@ void main(void)
 	if (ret) {
 		return;
 	}
+
+	shell_register_cb(shell_cb, ctx);
 #endif
 
 #if IS_ENABLED(CONFIG_BT)
