@@ -158,13 +158,11 @@ static inline struct app_evt_t *app_evt_alloc(void)
 
 static K_SEM_DEFINE(evt_sem, 0, 1);	/* starts off "not available" */
 
-void update_gps_off_timer(void) {
-	struct s_helium_mapper_ctx *ctx = &g_ctx;
+void update_gps_off_timer(struct s_helium_mapper_ctx *ctx) {
 	uint32_t timeout = lorawan_config.max_gps_on_time;
 
 	LOG_INF("GPS off timer start for %d sec", timeout);
 
-	// TODO: restart with full period, even if the old one not expired yet
 	k_timer_start(&ctx->gps_off_timer, K_SECONDS(timeout), K_NO_WAIT);
 }
 
@@ -575,7 +573,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 	case EV_NMEA_TRIG_ENABLE:
 		LOG_INF("Event NMEA_TRIG_ENABLE");
 		nmea_trigger_enable(GPS_TRIG_ENABLE);
-		update_gps_off_timer();
+		update_gps_off_timer(ctx);
 		break;
 
 	case EV_NMEA_TRIG_DISABLE:
