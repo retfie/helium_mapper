@@ -166,6 +166,17 @@ void update_gps_off_timer(struct s_helium_mapper_ctx *ctx) {
 	k_timer_start(&ctx->gps_off_timer, K_SECONDS(timeout), K_NO_WAIT);
 }
 
+void update_send_timer(struct s_helium_mapper_ctx *ctx) {
+	uint32_t time = lorawan_config.send_repeat_time;
+
+	if (time) {
+		LOG_INF("Send interval timer start for %d sec", time);
+		k_timer_start(&ctx->send_timer,
+				K_SECONDS(time),
+				K_SECONDS(time));
+	}
+}
+
 static void send_timer_handler(struct k_timer *timer)
 {
 	struct app_evt_t *ev;
@@ -473,10 +484,7 @@ void init_timers(struct s_helium_mapper_ctx *ctx)
 	k_timer_init(&ctx->delayed_timer, delayed_timer_handler, NULL);
 	k_timer_init(&ctx->gps_off_timer, gps_off_timer_handler, NULL);
 
-	if (lorawan_config.send_repeat_time) {
-		k_timer_start(&ctx->send_timer, K_SECONDS(lorawan_config.send_repeat_time),
-				K_SECONDS(lorawan_config.send_repeat_time));
-	}
+	update_send_timer(ctx);
 }
 
 void send_event(struct s_helium_mapper_ctx *ctx) {
