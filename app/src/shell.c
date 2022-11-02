@@ -16,10 +16,22 @@
 #include "battery.h"
 #include "nvm.h"
 #include "gps.h"
+#include "shell.h"
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(helium_mapper_shell);
+
+struct shell_ctx_s {
+	shell_cmd_cb_t shell_cb;
+	void *data;
+} shell_ctx = { .shell_cb = NULL, .data = NULL };
+
+void shell_register_cb(shell_cmd_cb_t cb, void *data)
+{
+	shell_ctx.shell_cb = cb;
+	shell_ctx.data = data;
+}
 
 size_t lorawan_hex2bin(const char *hex, size_t hexlen, uint8_t *buf, size_t buflen)
 {
@@ -329,6 +341,9 @@ static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv
 	} else {
 		lorawan_config.send_repeat_time = atoi(argv[1]);
 		hm_lorawan_nvm_save_settings("send_repeat_time");
+		if (shell_ctx.shell_cb) {
+			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER, shell_ctx.data);
+		}
 	}
 
 	return 0;
