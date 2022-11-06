@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT u_blox_max7q
 
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>

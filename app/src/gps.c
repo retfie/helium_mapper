@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #include <zephyr/drivers/sensor.h>
 
 #include <app/drivers/sensor/location.h>
