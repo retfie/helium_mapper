@@ -618,6 +618,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 int init_usb_console(void)
 {
 	if (usb_enable(NULL)) {
+		LOG_ERR("USB console init failed");
 		return -ENODEV;
 	}
 
@@ -631,13 +632,6 @@ void main(void)
 	struct app_evt_t *ev;
 	int ret;
 
-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
-	ret = init_usb_console();
-	if (ret) {
-		return;
-	}
-#endif
-
 	ret = init_leds();
 	if (ret) {
 		return;
@@ -647,6 +641,28 @@ void main(void)
 	if (ret) {
 		return;
 	}
+
+	ret = init_accel(ctx);
+	if (ret) {
+		return;
+	}
+
+	ret = init_gps();
+	if (ret) {
+		return;
+	}
+
+	ret = gps_set_trigger_handler(gps_trigger_handler);
+	if (ret) {
+		return;
+	}
+
+#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
+	ret = init_usb_console();
+	if (ret) {
+		return;
+	}
+#endif
 
 #if IS_ENABLED(CONFIG_SHELL)
 	ret = init_shell();
@@ -663,21 +679,6 @@ void main(void)
 		return;
 	}
 #endif
-
-	ret = init_accel(ctx);
-	if (ret) {
-		return;
-	}
-
-	ret = init_gps();
-	if (ret) {
-		return;
-	}
-
-	ret = gps_set_trigger_handler(gps_trigger_handler);
-	if (ret) {
-		return;
-	}
 
 	ret = init_lora();
 	if (ret) {
