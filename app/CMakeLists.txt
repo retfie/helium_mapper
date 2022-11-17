@@ -6,5 +6,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(helium_mapper)
 
 target_sources(                     app PRIVATE src/main.c src/battery.c src/gps.c src/nvm.c)
+target_sources(                     app PRIVATE boards/board.c)
 target_sources_ifdef(CONFIG_SHELL   app PRIVATE src/shell.c)
 target_sources_ifdef(CONFIG_BT      app PRIVATE src/ble.c)
