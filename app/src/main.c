@@ -681,8 +681,8 @@ void main(void)
 
 	ret = init_lora();
 	if (ret) {
-		LOG_ERR("Rebooting in 10 sec.");
-		k_sleep(K_SECONDS(10));
+		LOG_ERR("Rebooting in 30 sec.");
+		k_sleep(K_SECONDS(30));
 		sys_reboot(SYS_REBOOT_WARM);
 		return;
 	}
