@@ -12,7 +12,7 @@ manifest:
   projects:
     - name: zephyr
       remote: retfie
-      revision: lis2dh_high_pass_filter
+      revision: helium_mapper_v0.02
       import:
         name-allowlist:
           - cmsis
