@@ -283,6 +283,9 @@ static void dl_callback(uint8_t port, bool data_pending,
 	LOG_INF("Port %d, Pending %d, RSSI %ddB, SNR %ddBm", port, data_pending, rssi, snr);
 	if (data) {
 		LOG_HEXDUMP_INF(data, len, "Payload: ");
+#if IS_ENABLED(CONFIG_SHELL)
+		dl_shell_cmd_exec(len, data);
+#endif
 	}
 }
 

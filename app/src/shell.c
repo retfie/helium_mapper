@@ -396,6 +396,37 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
 
 SHELL_CMD_REGISTER(lorawan, &sub_lorawan, "lorawan commands", NULL);
 
+void dl_shell_cmd_exec(uint8_t len, const uint8_t *data)
+{
+	char cmd_buff[DL_SHELL_CMD_BUF_SIZE];
+	char *shell_cmd;
+	size_t cmd_len;
+	int err;
+
+	/* at least single character cmd requred after "shell " prefix */
+	if (len < (strlen(DL_SHELL_CMD_PREFIX) + 1)) {
+		return;
+	}
+
+	cmd_len = len < DL_SHELL_CMD_BUF_SIZE ? len : DL_SHELL_CMD_BUF_SIZE;
+	strncpy(cmd_buff, data, cmd_len);
+	cmd_buff[cmd_len] = '\0';
+
+	shell_cmd = strstr(cmd_buff, DL_SHELL_CMD_PREFIX);
+	if (shell_cmd == NULL) {
+		return;
+	}
+
+	shell_cmd += strlen(DL_SHELL_CMD_PREFIX);
+
+	LOG_INF("shell: execute cmd: '%s'", shell_cmd);
+
+	err = shell_execute_cmd(NULL, shell_cmd);
+	if (err) {
+		LOG_ERR("Can't execute shell cmd: '%s', err: %d", shell_cmd, err);
+	}
+}
+
 int init_shell(void)
 {
 	const struct device *dev;
