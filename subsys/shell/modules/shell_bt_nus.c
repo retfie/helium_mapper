@@ -159,6 +159,7 @@ void shell_bt_nus_disable(void)
 			(const struct shell_bt_nus *)shell_transport_bt_nus.ctx;
 
 	bt_nus->ctrl_blk->conn = NULL;
+	atomic_set(&bt_nus->ctrl_blk->tx_busy, 0);
 	k_sem_give(&shell_bt_nus_ready);
 }
 
@@ -183,6 +184,9 @@ void shell_bt_nus_enable(struct bt_conn *conn)
 		__ASSERT_NO_MSG(err == 0);
 		is_init = true;
 	}
+
+	bt_nus->ctrl_blk->handler(SHELL_TRANSPORT_EVT_TX_RDY,
+				  bt_nus->ctrl_blk->context);
 }
 
 const struct shell_transport_api shell_bt_nus_transport_api = {
