@@ -87,7 +87,7 @@ K_FIFO_DEFINE(evt_fifo);
 enum evt_t {
 	EV_TIMER,
 	EV_ACC,
-	EV_SEND,
+	EV_GPS_FIX,
 	EV_NMEA_TRIG_ENABLE,
 	EV_NMEA_TRIG_DISABLE,
 };
@@ -228,7 +228,7 @@ static void gps_trigger_handler(const struct device *dev,
 	nmea_trigger_enable(GPS_TRIG_DISABLE);
 
 	ev = app_evt_alloc();
-	ev->event_type = EV_SEND;
+	ev->event_type = EV_GPS_FIX;
 	app_evt_put(ev);
 	k_sem_give(&evt_sem);
 }
@@ -616,8 +616,8 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 		nmea_trigger_enable(GPS_TRIG_DISABLE);
 		break;
 
-	case EV_SEND:
-		LOG_INF("Event SEND");
+	case EV_GPS_FIX:
+		LOG_INF("Event GPS_FIX");
 		lora_send_msg(ctx);
 		break;
 
