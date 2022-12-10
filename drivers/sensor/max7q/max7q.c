@@ -22,6 +22,7 @@ LOG_MODULE_REGISTER(max7q, CONFIG_SENSOR_LOG_LEVEL);
 struct nmea_data {
 	float latitude;
 	float longitude;
+	uint8_t satellites;
 	float speed;
 	float altitude;
 	float accuracy;
@@ -110,6 +111,7 @@ static void decode_nmea_handler(struct max7q_data *data)
 			LOG_DBG("$xxGGA: fix quality: %d\n", frame.fix_quality);
 			nmea->latitude = minmea_tocoord(&frame.latitude);
 			nmea->longitude = minmea_tocoord(&frame.longitude);
+			nmea->satellites = frame.satellites_tracked;
 			nmea->altitude = minmea_tocoord(&frame.altitude) * 100;
 			nmea->accuracy = minmea_tocoord(&frame.hdop);
 			/** %f not work with CDC_ACM console */
@@ -130,9 +132,10 @@ static void decode_nmea_handler(struct max7q_data *data)
 				break;
 			}
 
-			LOG_DBG("$xxGGA: lat: %d.%06d, lng: %d.%06d, alt: %d.%06d, acc: %d.%06d",
+			LOG_DBG("$xxGGA: lat: %d.%06d, lng: %d.%06d, sat: %u, alt: %d.%06d, acc: %d.%06d",
 					lat.val1, lat.val2,
 					lng.val1, lng.val2,
+					nmea->satellites,
 					alt.val1, alt.val2,
 					acc.val1, acc.val2);
 
@@ -282,6 +285,9 @@ static int max7q_channel_get(const struct device *dev,enum sensor_channel chan,
 		break;
 	case SENSOR_CHAN_NAV_LONGITUDE:
 		tmp = nmea->longitude;;
+		break;
+	case SENSOR_CHAN_NAV_SATELLITES:
+		tmp = (double)nmea->satellites;;
 		break;
 	case SENSOR_CHAN_NAV_ALTITUDE:
 		tmp = nmea->altitude;;
