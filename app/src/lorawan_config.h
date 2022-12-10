@@ -45,6 +45,7 @@ struct s_mapper_data
 	uint16_t alt;
 	uint16_t accuracy;
 	uint16_t battery;
+	uint8_t fix;
 } __packed;
 
 struct s_status {

@@ -76,9 +76,12 @@ struct s_helium_mapper_ctx {
 	struct k_timer send_timer;
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
+	bool gps_fix;
 };
 
-struct s_helium_mapper_ctx g_ctx;
+struct s_helium_mapper_ctx g_ctx = {
+	.gps_fix = false,
+};
 
 /* Event FIFO */
 
@@ -548,6 +551,8 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 
 	memset(data_ptr, 0, sizeof(struct s_mapper_data));
 
+	mapper_data.fix = ctx->gps_fix ? 1 : 0;
+
 	err = read_battery(&batt_mV);
 	if (err == 0) {
 		mapper_data.battery = (uint16_t)batt_mV;
@@ -576,6 +581,8 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 
 	/* Remember last send time */
 	lorawan_status.last_pos_send = k_uptime_get();
+
+	ctx->gps_fix = false;
 }
 
 void shell_cb(enum shell_cmd_event event, void *data) {
@@ -614,10 +621,18 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 	case EV_NMEA_TRIG_DISABLE:
 		LOG_INF("Event NMEA_TRIG_DISABLE");
 		nmea_trigger_enable(GPS_TRIG_DISABLE);
+		/* If we aren't able to get gps fix during the whole
+		   GPS ON Interval, send lora message with other telemetry
+		   data and old position data if available.
+		*/
+		if (!ctx->gps_fix) {
+			lora_send_msg(ctx);
+		}
 		break;
 
 	case EV_GPS_FIX:
 		LOG_INF("Event GPS_FIX");
+		ctx->gps_fix = true;
 		lora_send_msg(ctx);
 		break;
 
