@@ -14,6 +14,8 @@ enum location_channel {
 	SENSOR_CHAN_NAV_LATITUDE = SENSOR_CHAN_PRIV_START,
 	/** Longitudal position in decimal degrees (0 to +-180) */
 	SENSOR_CHAN_NAV_LONGITUDE,
+	/** Number of tracked satellites */
+	SENSOR_CHAN_NAV_SATELLITES,
 	/** Altitude */
 	SENSOR_CHAN_NAV_ALTITUDE,
 	/** Relative accuracy of horizontal position */
