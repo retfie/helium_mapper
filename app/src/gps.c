@@ -20,7 +20,7 @@ int64_t gps_on_time = 0;
 
 void read_location(struct s_mapper_data *mapper_data)
 {
-	struct sensor_value lat, lng, alt, acc;
+	struct sensor_value lat, lng, alt, acc, sat;
 	double tmp;
 	int err;
 
@@ -40,6 +40,13 @@ void read_location(struct s_mapper_data *mapper_data)
 	tmp = sensor_value_to_double(&lng);
 	mapper_data->lng = (uint32_t)(tmp * 100000);
 
+	err = sensor_channel_get(dev, SENSOR_CHAN_NAV_SATELLITES, &sat);
+	if (err < 0) {
+		LOG_WRN("Unable to get satellites");
+		return;
+	}
+	mapper_data->satellites = sat.val1;
+
 	err = sensor_channel_get(dev, SENSOR_CHAN_NAV_ALTITUDE, &alt);
 	if (err < 0) {
 		LOG_WRN("Unable to get altitude");
@@ -56,9 +63,10 @@ void read_location(struct s_mapper_data *mapper_data)
 	tmp = sensor_value_to_double(&acc);
 	mapper_data->accuracy = (uint16_t)(tmp * 100);
 
-	LOG_DBG("lat: %d.%06d, lng: %d.%06d, alt: %d.%06d, acc: %d.%06d",
+	LOG_DBG("lat: %d.%06d, lng: %d.%06d, sat: %d, alt: %d.%06d, acc: %d.%06d",
 			lat.val1, lat.val2,
 			lng.val1, lng.val2,
+			sat.val1,
 			alt.val1, alt.val2,
 			acc.val1, acc.val2);
 }
