@@ -36,6 +36,10 @@ struct s_lorawan_config
 	uint32_t max_gps_on_time;
 	/* Max attempt to join network */
 	uint8_t join_try_count;
+	/* Max time window of no ack'd msg received before re-join in seconds */
+	uint32_t max_inactive_time_window;
+	/* Number of failed message before re-join */
+	uint32_t max_failed_msg;
 };
 
 extern struct s_lorawan_config lorawan_config;
@@ -56,9 +60,11 @@ struct s_status {
 	bool delayed_active;
 	bool gps_pwr_on;
 	time_t last_pos_send;
+	time_t last_pos_send_ok;
 	time_t last_accel_event;
 	uint32_t msgs_sent;
 	uint32_t msgs_failed;
+	uint32_t msgs_failed_total;
 	uint64_t gps_total_on_time;
 	uint32_t acc_events;
 };

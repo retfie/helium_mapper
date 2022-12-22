@@ -56,14 +56,21 @@ struct s_lorawan_config lorawan_config = {
 	.send_min_delay = 30,
 	.max_gps_on_time = 300,
 	.join_try_count = 5,
+	.max_inactive_time_window = 3 * 3600,
+	.max_failed_msg = 120,
 };
 
 struct s_status lorawan_status = {
 	.joined = false,
-	.gps_pwr_on = false,
 	.delayed_active = false,
+	.gps_pwr_on = false,
 	.last_pos_send = 0,
+	.last_pos_send_ok = 0,
 	.last_accel_event = 0,
+	.msgs_sent = 0,
+	.msgs_failed = 0,
+	.msgs_failed_total = 0,
+	.gps_total_on_time = 0,
 	.acc_events = 0,
 };
 
@@ -465,6 +472,8 @@ int join_lora(void) {
 	join_cfg.otaa.nwk_key = lorawan_config.app_key;
 
 	if (lorawan_config.auto_join) {
+		/* On green led to indicate not joined state */
+		led_enable(&led_green, 0);
 		while (retry--) {
 			LOG_INF("Joining network over OTAA. Attempt: %d",
 					lorawan_config.join_try_count - retry);
@@ -562,8 +571,18 @@ void send_event(struct s_helium_mapper_ctx *ctx) {
 
 void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 {
+	int64_t last_pos_send_ok_sec;
+	int64_t delta_sent_ok_sec;
+	uint8_t msg_type = lorawan_config.confirmed_msg;
+	uint32_t inactive_time_window_sec = lorawan_config.max_inactive_time_window;
+	uint32_t max_failed_msgs = lorawan_config.max_failed_msg;
 	int batt_mV;
 	int err;
+
+	if (!lorawan_status.joined) {
+		LOG_WRN("Not joined");
+		return;
+	}
 
 	memset(data_ptr, 0, sizeof(struct s_mapper_data));
 
@@ -579,18 +598,28 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	LOG_HEXDUMP_DBG(data_ptr, sizeof(struct s_mapper_data),
 			"mapper_data");
 
+	/* Send at least one confirmed msg on every 10 to check connectivity */
+	if (msg_type == LORAWAN_MSG_UNCONFIRMED &&
+			!(lorawan_status.msgs_sent % 10)) {
+		msg_type = LORAWAN_MSG_CONFIRMED;
+	}
+
 	LOG_INF("Lora send -------------->");
 
 	led_enable(&led_blue, 0);
 	err = lorawan_send(lorawan_config.app_port,
 			data_ptr, sizeof(struct s_mapper_data),
-			lorawan_config.confirmed_msg);
+			msg_type);
 	if (err < 0) {
 		//TODO: make special LED pattern in this case
 		lorawan_status.msgs_failed++;
+		lorawan_status.msgs_failed_total++;
 		LOG_ERR("lorawan_send failed: %d", err);
 	} else {
 		lorawan_status.msgs_sent++;
+		lorawan_status.msgs_failed = 0;
+		/* Remember last successfuly send message time */
+		lorawan_status.last_pos_send_ok = k_uptime_get();
 		LOG_INF("Data sent!");
 	}
 	led_enable(&led_blue, 1);
@@ -599,6 +628,26 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	lorawan_status.last_pos_send = k_uptime_get();
 
 	ctx->gps_fix = false;
+
+	last_pos_send_ok_sec = lorawan_status.last_pos_send_ok;
+	delta_sent_ok_sec = k_uptime_delta(&last_pos_send_ok_sec) / 1000;
+	LOG_INF("delta_sent_ok_sec: %lld", delta_sent_ok_sec);
+
+	if (lorawan_status.msgs_failed > max_failed_msgs ||
+			delta_sent_ok_sec > inactive_time_window_sec) {
+		LOG_ERR("Too many failed msgs: Try to re-join.");
+
+		lorawan_status.joined = false;
+
+		/* TODO: Move join and re-join into separate thread */
+		err = join_lora();
+		if (err) {
+			LOG_ERR("Reboot in 30sec");
+			k_sleep(K_SECONDS(30));
+			sys_reboot(SYS_REBOOT_WARM);
+			return; /* won't reach this */
+		}
+	}
 }
 
 void shell_cb(enum shell_cmd_event event, void *data) {
