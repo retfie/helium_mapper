@@ -92,6 +92,8 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "  Auto join        %s", lorawan_config.auto_join ? "true" : "false");
 	shell_print(shell, "  Data rate/DR+    %d", lorawan_config.data_rate);
 	shell_print(shell, "  Confirmed msgs   %s", lorawan_config.confirmed_msg ? "true" : "false");
+	shell_print(shell, "  Max failed msgs  %d", lorawan_config.max_failed_msg);
+	shell_print(shell, "  Inactive window  %d sec", lorawan_config.max_inactive_time_window);
 	shell_print(shell, "  Send interval    %d sec", lorawan_config.send_repeat_time);
 	shell_print(shell, "  Min delay        %d sec", lorawan_config.send_min_delay);
 	shell_print(shell, "  Max GPS ON time  %d sec", lorawan_config.max_gps_on_time);
@@ -108,8 +110,10 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 	struct timespec tp;
 	struct tm tm;
 	int64_t last_pos_send = lorawan_status.last_pos_send;
+	int64_t last_pos_send_ok = lorawan_status.last_pos_send_ok;
 	int64_t last_accel_event = lorawan_status.last_accel_event;
 	int64_t delta_sent = k_uptime_delta(&last_pos_send) / 1000;
+	int64_t delta_sent_ok = k_uptime_delta(&last_pos_send_ok) / 1000;
 	int64_t delta_acc = k_uptime_delta(&last_accel_event) / 1000;
 
 	clock_gettime(CLOCK_REALTIME, &tp);
@@ -121,9 +125,11 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "  gps power on     %s", lorawan_status.gps_pwr_on ? "true" : "false");
 	shell_print(shell, "  messages sent    %d", lorawan_status.msgs_sent);
 	shell_print(shell, "  messages failed  %d", lorawan_status.msgs_failed);
+	shell_print(shell, "  msg failed total %d", lorawan_status.msgs_failed_total);
 	shell_print(shell, "  Accel events     %d", lorawan_status.acc_events);
 	shell_print(shell, "  Total GPS ON     %lld sec", lorawan_status.gps_total_on_time);
 	shell_print(shell, "  last msg sent    %lld sec", delta_sent);
+	shell_print(shell, "  last msg sent OK %lld sec", delta_sent_ok);
 	shell_print(shell, "  last acc event   %lld sec", delta_acc);
 	shell_print(shell, "  Uptime           %04d-%02u-%02u %02u:%02u:%02u",
 		    tm.tm_year - 70,
