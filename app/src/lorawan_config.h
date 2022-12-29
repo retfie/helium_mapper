@@ -34,6 +34,8 @@ struct s_lorawan_config
 	uint32_t send_min_delay;
 	/* Max GPS on time in seconds */
 	uint32_t max_gps_on_time;
+	/* Max attempt to join network */
+	uint8_t join_try_count;
 };
 
 extern struct s_lorawan_config lorawan_config;

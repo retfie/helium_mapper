@@ -55,6 +55,7 @@ struct s_lorawan_config lorawan_config = {
 	.send_repeat_time = 0,
 	.send_min_delay = 30,
 	.max_gps_on_time = 300,
+	.join_try_count = 5,
 };
 
 struct s_status lorawan_status = {
@@ -452,10 +453,42 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 	return err;
 }
 
+int join_lora(void) {
+	struct lorawan_join_config join_cfg;
+	int retry = lorawan_config.join_try_count;
+	int ret = 0;
+
+	join_cfg.mode = lorawan_config.lora_mode;
+	join_cfg.dev_eui = lorawan_config.dev_eui;
+	join_cfg.otaa.join_eui = lorawan_config.app_eui;
+	join_cfg.otaa.app_key = lorawan_config.app_key;
+	join_cfg.otaa.nwk_key = lorawan_config.app_key;
+
+	if (lorawan_config.auto_join) {
+		while (retry--) {
+			LOG_INF("Joining network over OTAA. Attempt: %d",
+					lorawan_config.join_try_count - retry);
+			ret = lorawan_join(&join_cfg);
+			if (ret == 0) {
+				break;
+			}
+			LOG_ERR("lorawan_join_network failed: %d", ret);
+			k_sleep(K_SECONDS(15));
+		}
+
+		if (ret == 0) {
+			lorawan_status.joined = true;
+			/* Turn green led off on join success */
+			led_enable(&led_green, 1);
+		}
+	}
+
+	return ret;
+}
+
 int init_lora(void) {
 	const struct device *lora_dev;
-	struct lorawan_join_config join_cfg;
-	int ret;
+	int ret = 0;
 
 	lora_dev = DEVICE_DT_GET(DT_ALIAS(lora0));
 	if (!device_is_ready(lora_dev)) {
@@ -473,26 +506,9 @@ int init_lora(void) {
 	lorawan_register_dr_changed_callback(lorwan_datarate_changed);
 	lorawan_set_datarate(lorawan_config.data_rate);
 
-	join_cfg.mode = lorawan_config.lora_mode;
-	join_cfg.dev_eui = lorawan_config.dev_eui;
-	join_cfg.otaa.join_eui = lorawan_config.app_eui;
-	join_cfg.otaa.app_key = lorawan_config.app_key;
-	join_cfg.otaa.nwk_key = lorawan_config.app_key;
+	ret = join_lora();
 
-	if (lorawan_config.auto_join) {
-		LOG_INF("Joining network over OTAA");
-		ret = lorawan_join(&join_cfg);
-		if (ret < 0) {
-			LOG_ERR("lorawan_join_network failed: %d", ret);
-			return ret;
-		}
-		lorawan_status.joined = true;
-
-		/* Turn green led off on join success */
-		led_enable(&led_green, 1);
-	}
-
-	return 0;
+	return ret;
 }
 
 void init_timers(struct s_helium_mapper_ctx *ctx)
