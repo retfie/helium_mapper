@@ -77,6 +77,8 @@ struct s_status lorawan_status = {
 struct s_mapper_data mapper_data;
 char *data_ptr = (char*)&mapper_data;
 
+#define LORA_JOIN_THREAD_STACK_SIZE 1500
+#define LORA_JOIN_THREAD_PRIORITY 10
 
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
@@ -84,6 +86,9 @@ struct s_helium_mapper_ctx {
 	struct k_timer send_timer;
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
+	K_KERNEL_STACK_MEMBER(thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
+	struct k_thread thread;
+	struct k_sem lora_join_sem;
 	bool gps_fix;
 };
 
@@ -495,9 +500,24 @@ int join_lora(void) {
 	return ret;
 }
 
-int init_lora(void) {
+static void lora_join_thread(struct s_helium_mapper_ctx *ctx) {
+	int err;
+
+	while (1) {
+		k_sem_take(&ctx->lora_join_sem, K_FOREVER);
+		err = join_lora();
+		if (err) {
+			LOG_ERR("Reboot in 30sec");
+			k_sleep(K_SECONDS(30));
+			sys_reboot(SYS_REBOOT_WARM);
+			return; /* won't reach this */
+		}
+	}
+}
+
+int init_lora(struct s_helium_mapper_ctx *ctx) {
 	const struct device *lora_dev;
-	int ret = 0;
+	int ret;
 
 	lora_dev = DEVICE_DT_GET(DT_ALIAS(lora0));
 	if (!device_is_ready(lora_dev)) {
@@ -515,9 +535,20 @@ int init_lora(void) {
 	lorawan_register_dr_changed_callback(lorwan_datarate_changed);
 	lorawan_set_datarate(lorawan_config.data_rate);
 
-	ret = join_lora();
+	k_sem_init(&ctx->lora_join_sem, 0, K_SEM_MAX_LIMIT);
 
-	return ret;
+	k_thread_create(&ctx->thread, ctx->thread_stack,
+			LORA_JOIN_THREAD_STACK_SIZE,
+			(k_thread_entry_t)lora_join_thread, ctx, NULL, NULL,
+			K_PRIO_PREEMPT(LORA_JOIN_THREAD_PRIORITY), 0,
+			K_SECONDS(1));
+
+	k_thread_name_set(&ctx->thread, "lora_join");
+
+	/* make initial join */
+	k_sem_give(&ctx->lora_join_sem);
+
+	return 0;
 }
 
 void init_timers(struct s_helium_mapper_ctx *ctx)
@@ -636,17 +667,8 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	if (lorawan_status.msgs_failed > max_failed_msgs ||
 			delta_sent_ok_sec > inactive_time_window_sec) {
 		LOG_ERR("Too many failed msgs: Try to re-join.");
-
 		lorawan_status.joined = false;
-
-		/* TODO: Move join and re-join into separate thread */
-		err = join_lora();
-		if (err) {
-			LOG_ERR("Reboot in 30sec");
-			k_sleep(K_SECONDS(30));
-			sys_reboot(SYS_REBOOT_WARM);
-			return; /* won't reach this */
-		}
+		k_sem_give(&ctx->lora_join_sem);
 	}
 }
 
@@ -774,7 +796,7 @@ void main(void)
 	}
 #endif
 
-	ret = init_lora();
+	ret = init_lora(ctx);
 	if (ret) {
 		LOG_ERR("Rebooting in 30 sec.");
 		k_sleep(K_SECONDS(30));
