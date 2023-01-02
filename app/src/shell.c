@@ -115,6 +115,7 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 	int64_t delta_sent = k_uptime_delta(&last_pos_send) / 1000;
 	int64_t delta_sent_ok = k_uptime_delta(&last_pos_send_ok) / 1000;
 	int64_t delta_acc = k_uptime_delta(&last_accel_event) / 1000;
+	uint16_t join_retry_sessions_count = lorawan_status.join_retry_sessions_count;
 
 	clock_gettime(CLOCK_REALTIME, &tp);
 	gmtime_r(&tp.tv_sec, &tm);
@@ -127,6 +128,7 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "  messages failed  %d", lorawan_status.msgs_failed);
 	shell_print(shell, "  msg failed total %d", lorawan_status.msgs_failed_total);
 	shell_print(shell, "  Accel events     %d", lorawan_status.acc_events);
+	shell_print(shell, "  Join retry sess  %d", join_retry_sessions_count);
 	shell_print(shell, "  Total GPS ON     %lld sec", lorawan_status.gps_total_on_time);
 	shell_print(shell, "  last msg sent    %lld sec", delta_sent);
 	shell_print(shell, "  last msg sent OK %lld sec", delta_sent_ok);
