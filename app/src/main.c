@@ -56,6 +56,7 @@ struct s_lorawan_config lorawan_config = {
 	.send_min_delay = 30,
 	.max_gps_on_time = 300,
 	.join_try_count = 5,
+	.join_try_interval = 300,
 	.max_inactive_time_window = 3 * 3600,
 	.max_failed_msg = 120,
 };
@@ -86,6 +87,7 @@ struct s_helium_mapper_ctx {
 	struct k_timer send_timer;
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
+	struct k_timer lora_join_timer;
 	K_KERNEL_STACK_MEMBER(thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
 	struct k_thread thread;
 	struct k_sem lora_join_sem;
@@ -94,6 +96,11 @@ struct s_helium_mapper_ctx {
 
 struct s_helium_mapper_ctx g_ctx = {
 	.gps_fix = false,
+};
+
+enum lorawan_state_e {
+	NOT_JOINED,
+	JOINED,
 };
 
 /* Event FIFO */
@@ -465,7 +472,54 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 	return err;
 }
 
-int join_lora(void) {
+void lorawan_state(struct s_helium_mapper_ctx *ctx, enum lorawan_state_e state)
+{
+	uint32_t join_try_interval_sec = lorawan_config.join_try_interval;
+
+	/* Represent state as string */
+	LOG_INF("LoraWAN state: %d", state);
+
+	switch (state) {
+	case NOT_JOINED:
+		/* Turn green led on to indicate not joined state */
+		led_enable(&led_green, 0);
+
+		lorawan_status.joined = false;
+		LOG_INF("Lora join timer start for %d sec", join_try_interval_sec);
+		k_timer_start(&ctx->lora_join_timer, K_SECONDS(join_try_interval_sec),
+				K_NO_WAIT);
+		k_sem_give(&ctx->lora_join_sem);
+		break;
+
+	case JOINED:
+		/* Turn green led off on join success */
+		led_enable(&led_green, 1);
+
+		lorawan_status.joined = true;
+		LOG_INF("Stop Lora join retry timer");
+		k_timer_stop(&ctx->lora_join_timer);
+		break;
+
+	default:
+		LOG_ERR("Unknown LoraWAN state");
+		break;
+	} /* switch */
+}
+
+static void lora_join_timer_handler(struct k_timer *timer)
+{
+	struct s_helium_mapper_ctx *ctx =
+		CONTAINER_OF(timer, struct s_helium_mapper_ctx, lora_join_timer);
+
+	LOG_INF("LoraWAN join timer handler");
+
+	/* If not joined within 'join_try_interval', try again */
+	if (!lorawan_status.joined) {
+		lorawan_state(ctx, NOT_JOINED);
+	}
+}
+
+int join_lora(struct s_helium_mapper_ctx *ctx) {
 	struct lorawan_join_config join_cfg;
 	int retry = lorawan_config.join_try_count;
 	int ret = 0;
@@ -477,8 +531,6 @@ int join_lora(void) {
 	join_cfg.otaa.nwk_key = lorawan_config.app_key;
 
 	if (lorawan_config.auto_join) {
-		/* On green led to indicate not joined state */
-		led_enable(&led_green, 0);
 		while (retry--) {
 			LOG_INF("Joining network over OTAA. Attempt: %d",
 					lorawan_config.join_try_count - retry);
@@ -491,9 +543,7 @@ int join_lora(void) {
 		}
 
 		if (ret == 0) {
-			lorawan_status.joined = true;
-			/* Turn green led off on join success */
-			led_enable(&led_green, 1);
+			lorawan_state(ctx, JOINED);
 		}
 	}
 
@@ -505,7 +555,7 @@ static void lora_join_thread(struct s_helium_mapper_ctx *ctx) {
 
 	while (1) {
 		k_sem_take(&ctx->lora_join_sem, K_FOREVER);
-		err = join_lora();
+		err = join_lora(ctx);
 		if (err) {
 			LOG_ERR("Reboot in 30sec");
 			k_sleep(K_SECONDS(30));
@@ -546,7 +596,7 @@ int init_lora(struct s_helium_mapper_ctx *ctx) {
 	k_thread_name_set(&ctx->thread, "lora_join");
 
 	/* make initial join */
-	k_sem_give(&ctx->lora_join_sem);
+	lorawan_state(ctx, NOT_JOINED);
 
 	return 0;
 }
@@ -556,6 +606,7 @@ void init_timers(struct s_helium_mapper_ctx *ctx)
 	k_timer_init(&ctx->send_timer, send_timer_handler, NULL);
 	k_timer_init(&ctx->delayed_timer, delayed_timer_handler, NULL);
 	k_timer_init(&ctx->gps_off_timer, gps_off_timer_handler, NULL);
+	k_timer_init(&ctx->lora_join_timer, lora_join_timer_handler, NULL);
 
 	update_send_timer(ctx);
 }
@@ -667,8 +718,7 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	if (lorawan_status.msgs_failed > max_failed_msgs ||
 			delta_sent_ok_sec > inactive_time_window_sec) {
 		LOG_ERR("Too many failed msgs: Try to re-join.");
-		lorawan_status.joined = false;
-		k_sem_give(&ctx->lora_join_sem);
+		lorawan_state(ctx, NOT_JOINED);
 	}
 }
 
