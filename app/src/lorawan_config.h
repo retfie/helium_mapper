@@ -36,6 +36,8 @@ struct s_lorawan_config
 	uint32_t max_gps_on_time;
 	/* Max attempt to join network */
 	uint8_t join_try_count;
+	/* Max LoraWAN join sessions retry count before reboot */
+	uint16_t max_join_retry_sessions_count;
 	/* Max LoraWAN join window interval in seconds */
 	uint32_t join_try_interval;
 	/* Max time window of no ack'd msg received before re-join in seconds */
@@ -69,6 +71,7 @@ struct s_status {
 	uint32_t msgs_failed_total;
 	uint64_t gps_total_on_time;
 	uint32_t acc_events;
+	uint16_t join_retry_sessions_count;
 };
 
 extern struct s_status lorawan_status;

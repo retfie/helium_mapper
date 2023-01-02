@@ -55,7 +55,11 @@ struct s_lorawan_config lorawan_config = {
 	.send_repeat_time = 0,
 	.send_min_delay = 30,
 	.max_gps_on_time = 300,
+	/* max join attempt in one join session */
 	.join_try_count = 5,
+	/* max join sessions before give up and reboot. 20 * 5 = 100 join attempts */
+	.max_join_retry_sessions_count = 20,
+	/* max join session interval in sec */
 	.join_try_interval = 300,
 	.max_inactive_time_window = 3 * 3600,
 	.max_failed_msg = 120,
@@ -73,6 +77,7 @@ struct s_status lorawan_status = {
 	.msgs_failed_total = 0,
 	.gps_total_on_time = 0,
 	.acc_events = 0,
+	.join_retry_sessions_count = 0,
 };
 
 struct s_mapper_data mapper_data;
@@ -496,6 +501,7 @@ void lorawan_state(struct s_helium_mapper_ctx *ctx, enum lorawan_state_e state)
 		led_enable(&led_green, 1);
 
 		lorawan_status.joined = true;
+		lorawan_status.join_retry_sessions_count = 0;
 		LOG_INF("Stop Lora join retry timer");
 		k_timer_stop(&ctx->lora_join_timer);
 		break;
@@ -551,12 +557,17 @@ int join_lora(struct s_helium_mapper_ctx *ctx) {
 }
 
 static void lora_join_thread(struct s_helium_mapper_ctx *ctx) {
+	uint16_t retry_count_conf = lorawan_config.max_join_retry_sessions_count;
 	int err;
 
 	while (1) {
 		k_sem_take(&ctx->lora_join_sem, K_FOREVER);
 		err = join_lora(ctx);
 		if (err) {
+			lorawan_status.join_retry_sessions_count++;
+		}
+
+		if (lorawan_status.join_retry_sessions_count > retry_count_conf) {
 			LOG_ERR("Reboot in 30sec");
 			k_sleep(K_SECONDS(30));
 			sys_reboot(SYS_REBOOT_WARM);
