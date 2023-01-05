@@ -481,12 +481,23 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 	return err;
 }
 
+static const char *lorawan_state_str(enum lorawan_state_e state)
+{
+	switch(state) {
+	case NOT_JOINED:
+		return "NOT_JOINED";
+	case JOINED:
+		return "JOINED";
+	}
+
+	return "UNKNOWN";
+}
+
 void lorawan_state(struct s_helium_mapper_ctx *ctx, enum lorawan_state_e state)
 {
 	uint32_t join_try_interval_sec = lorawan_config.join_try_interval;
 
-	/* Represent state as string */
-	LOG_INF("LoraWAN state: %d", state);
+	LOG_INF("LoraWAN state set to: %s", lorawan_state_str(state));
 
 	switch (state) {
 	case NOT_JOINED:
