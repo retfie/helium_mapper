@@ -166,6 +166,7 @@ static int cmd_battery(const struct shell *shell, size_t argc, char **argv)
 }
 SHELL_CMD_ARG_REGISTER(battery, NULL, "Show battery status", cmd_battery, 1, 0);
 
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 static int cmd_location(const struct shell *shell, size_t argc, char **argv)
 {
 	struct s_mapper_data data;
@@ -204,6 +205,7 @@ static int cmd_location(const struct shell *shell, size_t argc, char **argv)
 	return 0;
 }
 SHELL_CMD_ARG_REGISTER(location, NULL, "Show GPS location", cmd_location, 1, 0);
+#endif
 
 static int cmd_reboot(const struct shell *shell, size_t argc, char **argv)
 {
@@ -287,9 +289,11 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 		}
 	}
 
+#if IS_ENABLED(CONFIG_SETTINGS)
 	if (save) {
 		hm_lorawan_nvm_save_settings(argv[0]);
 	}
+#endif
 
 	return 0;
 }
@@ -309,8 +313,11 @@ static int cmd_auto_join(const struct shell *shell, size_t argc, char **argv)
 			lorawan_config.auto_join = false;
 			save = true;
 		}
+
 		if (save) {
+#if IS_ENABLED(CONFIG_SETTINGS)
 			hm_lorawan_nvm_save_settings("auto_join");
+#endif
 		} else {
 			shell_print(shell, "Invalid input: valid are true/false");
 		}
@@ -334,9 +341,11 @@ static int cmd_confirmed_msg(const struct shell *shell, size_t argc, char **argv
 			lorawan_config.confirmed_msg = LORAWAN_MSG_UNCONFIRMED;
 			save = true;
 		}
+#if IS_ENABLED(CONFIG_SETTINGS)
 		if (save) {
 			hm_lorawan_nvm_save_settings("confirmed_msg");
 		}
+#endif
 	}
 
 	return 0;
@@ -348,7 +357,9 @@ static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv
 		shell_print(shell, "%u sec", lorawan_config.send_repeat_time);
 	} else {
 		lorawan_config.send_repeat_time = atoi(argv[1]);
+#if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_repeat_time");
+#endif
 		if (shell_ctx.shell_cb) {
 			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER, shell_ctx.data);
 		}
@@ -363,7 +374,9 @@ static int cmd_min_delay(const struct shell *shell, size_t argc, char **argv)
 		shell_print(shell, "%u sec", lorawan_config.send_min_delay);
 	} else {
 		lorawan_config.send_min_delay = atoi(argv[1]);
+#if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_min_delay");
+#endif
 	}
 
 	return 0;
@@ -375,7 +388,9 @@ static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 		shell_print(shell, "%u sec", lorawan_config.max_gps_on_time);
 	} else {
 		lorawan_config.max_gps_on_time = atoi(argv[1]);
+#if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("max_gps_on_time");
+#endif
 	}
 
 	return 0;

@@ -237,7 +237,9 @@ static void gps_off_timer_handler(struct k_timer *timer)
 
 	LOG_INF("GPS off timer handler");
 
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	gps_enable(GPS_DISABLE);
+#endif
 
 	ev = app_evt_alloc();
 	ev->event_type = EV_NMEA_TRIG_DISABLE;
@@ -245,6 +247,7 @@ static void gps_off_timer_handler(struct k_timer *timer)
 	k_sem_give(&evt_sem);
 }
 
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 static void gps_trigger_handler(const struct device *dev,
 		const struct sensor_trigger *trig)
 {
@@ -260,6 +263,7 @@ static void gps_trigger_handler(const struct device *dev,
 	app_evt_put(ev);
 	k_sem_give(&evt_sem);
 }
+#endif
 
 int init_leds(void)
 {
@@ -669,7 +673,6 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	uint8_t msg_type = lorawan_config.confirmed_msg;
 	uint32_t inactive_time_window_sec = lorawan_config.max_inactive_time_window;
 	uint32_t max_failed_msgs = lorawan_config.max_failed_msg;
-	int batt_mV;
 	int err;
 
 	if (!lorawan_status.joined) {
@@ -681,12 +684,17 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 
 	mapper_data.fix = ctx->gps_fix ? 1 : 0;
 
+#if IS_ENABLED(CONFIG_ADC)
+	int batt_mV;
 	err = read_battery(&batt_mV);
 	if (err == 0) {
 		mapper_data.battery = (uint16_t)batt_mV;
 	}
+#endif
 
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	read_location(&mapper_data);
+#endif
 
 	LOG_HEXDUMP_DBG(data_ptr, sizeof(struct s_mapper_data),
 			"mapper_data");
@@ -733,6 +741,7 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	}
 }
 
+#if IS_ENABLED(CONFIG_SHELL)
 void shell_cb(enum shell_cmd_event event, void *data) {
 	struct s_helium_mapper_ctx *ctx = (struct s_helium_mapper_ctx *)data;
 
@@ -745,6 +754,7 @@ void shell_cb(enum shell_cmd_event event, void *data) {
 		break;
 	} /* switch */
 }
+#endif
 
 void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 {
@@ -762,13 +772,17 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 
 	case EV_NMEA_TRIG_ENABLE:
 		LOG_INF("Event NMEA_TRIG_ENABLE");
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 		nmea_trigger_enable(GPS_TRIG_ENABLE);
+#endif
 		update_gps_off_timer(ctx);
 		break;
 
 	case EV_NMEA_TRIG_DISABLE:
 		LOG_INF("Event NMEA_TRIG_DISABLE");
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 		nmea_trigger_enable(GPS_TRIG_DISABLE);
+#endif
 		/* If we aren't able to get gps fix during the whole
 		   GPS ON Interval, send lora message with other telemetry
 		   data and old position data if available.
@@ -814,16 +828,19 @@ void main(void)
 		return;
 	}
 
+#if IS_ENABLED(CONFIG_SETTINGS)
 	ret = load_config();
 	if (ret) {
 		return;
 	}
+#endif
 
 	ret = init_accel(ctx);
 	if (ret) {
 		return;
 	}
 
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	ret = init_gps();
 	if (ret) {
 		return;
@@ -833,6 +850,7 @@ void main(void)
 	if (ret) {
 		return;
 	}
+#endif
 
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 	ret = init_usb_console();

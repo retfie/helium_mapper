@@ -39,14 +39,18 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 	LOG_INF("Connected");
 	current_conn = bt_conn_ref(conn);
+#if IS_ENABLED(CONFIG_SHELL)
 	shell_bt_nus_enable(conn);
+#endif
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	LOG_INF("Disconnected (reason %u)", reason);
 
+#if IS_ENABLED(CONFIG_SHELL)
 	shell_bt_nus_disable();
+#endif
 	if (current_conn) {
 		bt_conn_unref(current_conn);
 		current_conn = NULL;
@@ -181,11 +185,13 @@ int init_ble(void)
 		return err;
 	}
 
+#if IS_ENABLED(CONFIG_SHELL)
 	err = shell_bt_nus_init();
 	if (err) {
 		LOG_ERR("Failed to initialize BT NUS shell (err: %d)", err);
 		return err;
 	}
+#endif
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad), sd,
 			      ARRAY_SIZE(sd));
