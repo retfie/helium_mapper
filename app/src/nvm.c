@@ -37,7 +37,6 @@ static const struct hm_nvm_setting_descr hm_nvm_setting_descriptors[] = {
 	HM_NVM_SETTING_DESCR(max_gps_on_time),
 };
 
-#if IS_ENABLED(CONFIG_SHELL)
 void hm_lorawan_nvm_save_settings(const char *name)
 {
 	LOG_DBG("Saving LoRaWAN settings");
@@ -62,7 +61,6 @@ void hm_lorawan_nvm_save_settings(const char *name)
 
 	settings_save();
 }
-#endif
 
 static int hm_load_setting(void *tgt, size_t tgt_size,
 			const char *key, size_t len,
