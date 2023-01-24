@@ -17,7 +17,7 @@ manifest:
   projects:
     - name: zephyr
       remote: retfie
-      revision: helium_mapper_v0.02
+      revision: helium_mapper.mcuboot
       import:
         name-allowlist:
           - cmsis
