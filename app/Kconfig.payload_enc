@@ -1,0 +1,14 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config PAYLOAD_ENCRYPTION
+	bool "Payload encryption support"
+	select TINYCRYPT
+	select TINYCRYPT_AES
+	select TINYCRYPT_AES_CBC
+	select TINYCRYPT_CTR_PRNG
+	select ENTROPY
+	select ENTROPY_GENERATOR
+	help
+	  Build with support for symmetric encryption of the LoraWan payload.

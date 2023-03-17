@@ -99,6 +99,14 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "  Min delay        %d sec", lorawan_config.send_min_delay);
 	shell_print(shell, "  Max GPS ON time  %d sec", lorawan_config.max_gps_on_time);
 
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	shell_fprintf(shell, SHELL_NORMAL, "  Payload key      ");
+	for (i = 0; i < sizeof(lorawan_config.payload_key); i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", lorawan_config.payload_key[i] & 0xFF);
+	}
+	shell_print(shell, "");
+#endif
+
 	return 0;
 }
 SHELL_CMD_ARG_REGISTER(config, NULL, "Show helium_mapper config", cmd_config, 1, 0);
@@ -257,6 +265,12 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 			shell_lorawan_hexdump(shell, lorawan_config.app_key,
 					sizeof(lorawan_config.app_key), "app_key ");
 		}
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+		else if (!strncmp(argv[0], "payload_key", strlen("payload_key"))) {
+			shell_lorawan_hexdump(shell, lorawan_config.payload_key,
+					sizeof(lorawan_config.payload_key), "payload_key ");
+		}
+#endif
 	} else {
 		if (!strncmp(argv[0], "dev_eui", strlen("dev_eui"))) {
 			len = lorawan_hex2bin(argv[1], strlen(argv[1]), buf, 8);
@@ -288,6 +302,18 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 			memcpy(lorawan_config.app_key, buf, 16);
 			save = true;
 		}
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+		else if (!strncmp(argv[0], "payload_key", strlen("payload_key"))) {
+			len = lorawan_hex2bin(argv[1], strlen(argv[1]), buf, 16);
+			if (len != 16) {
+				LOG_WRN("Not enough or invalid characters, len: %d", len);
+				return -EINVAL;
+			}
+			LOG_HEXDUMP_DBG(buf, len, "payload_key: ");
+			memcpy(lorawan_config.payload_key, buf, 16);
+			save = true;
+		}
+#endif
 	}
 
 #if IS_ENABLED(CONFIG_SETTINGS)
@@ -405,6 +431,7 @@ static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 #define HELP_SEND_INTERVAL "Send interval in seconds"
 #define HELP_MIN_DELAY "Min delay between 2 messages in ms"
 #define HELP_MAX_GPS_ON "Max time GPS is ON if no one using it in seconds"
+#define HELP_PAYLOAD_KEY "get/set payload_key [00000000000000000000000000000000]"
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
 	SHELL_CMD_ARG(dev_eui, NULL, HELP_DEV_EUI, cmd_lorawan_keys, 1, 1),
@@ -415,6 +442,9 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
 	SHELL_CMD_ARG(send_interval, NULL, HELP_SEND_INTERVAL, cmd_send_interval, 1, 1),
 	SHELL_CMD_ARG(min_delay, NULL, HELP_MIN_DELAY, cmd_min_delay, 1, 1),
 	SHELL_CMD_ARG(max_gps_on_time, NULL, HELP_MAX_GPS_ON, cmd_max_gps_on, 1, 1),
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	SHELL_CMD_ARG(payload_key, NULL, HELP_PAYLOAD_KEY, cmd_lorawan_keys, 1, 1),
+#endif
 	SHELL_SUBCMD_SET_END
 );
 

@@ -380,3 +380,7 @@ secondary area (2):
 ```
 
 Note! In case new image not confirmed, or fails to boot, it will automatically revert to last working image into slot-0
+
+### Payload Encryption
+
+The optional payload encryption support is documented [here](./PAYLOAD-ENCRYPTION.md).
