@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
@@ -27,6 +28,15 @@
 #endif
 #if IS_ENABLED(CONFIG_BT)
 #include "ble.h"
+#endif
+
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+#include <tinycrypt/constants.h>
+#include <tinycrypt/cbc_mode.h>
+#include <tinycrypt/ctr_prng.h>
+#include <zephyr/drivers/entropy.h>
+
+#define TC_ALIGN_UP(N,PAGE)	(((N) + (PAGE) - 1) & ~((PAGE) - 1))
 #endif
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
@@ -63,6 +73,9 @@ struct s_lorawan_config lorawan_config = {
 	.join_try_interval = 300,
 	.max_inactive_time_window = 3 * 3600,
 	.max_failed_msg = 120,
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	.payload_key = {0},
+#endif
 };
 
 struct s_status lorawan_status = {
@@ -81,10 +94,16 @@ struct s_status lorawan_status = {
 };
 
 struct s_mapper_data mapper_data;
-char *data_ptr = (char*)&mapper_data;
 
 #define LORA_JOIN_THREAD_STACK_SIZE 1500
 #define LORA_JOIN_THREAD_PRIORITY 10
+
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+#define TC_AES_IV_NBYTES 16
+static uint8_t payload_clearbuf[TC_ALIGN_UP(sizeof(mapper_data),TC_AES_BLOCK_SIZE)];
+static uint8_t payload_encbuf[sizeof(payload_clearbuf) + TC_AES_BLOCK_SIZE];
+static uint8_t enc_aes_iv[TC_AES_IV_NBYTES];	/* Temporary buffer for AES IV. */
+#endif
 
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
@@ -97,6 +116,11 @@ struct s_helium_mapper_ctx {
 	struct k_thread thread;
 	struct k_sem lora_join_sem;
 	bool gps_fix;
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	TCCtrPrng_t prng;
+	const struct device *entropy_dev;
+#endif
+
 };
 
 struct s_helium_mapper_ctx g_ctx = {
@@ -677,6 +701,67 @@ void send_event(struct s_helium_mapper_ctx *ctx) {
 	}
 }
 
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+static bool should_encrypt_payload()
+{
+	return lorawan_config.payload_key[0] != 0
+		|| memcmp(&lorawan_config.payload_key[0],
+			  &lorawan_config.payload_key[1],
+			  sizeof(lorawan_config.payload_key)-1);
+}
+
+static int encrypt_payload(struct s_helium_mapper_ctx *ctx)
+{
+	int err;
+	struct tc_aes_key_sched_struct tc_sched;
+
+	/* Sanity check. */
+	assert (sizeof(lorawan_config.payload_key) == TC_AES_KEY_SIZE);
+
+	memset(&payload_clearbuf, 0, sizeof(payload_clearbuf));
+	memset(&payload_encbuf, 0, sizeof(payload_encbuf));
+
+	memcpy(&payload_clearbuf, &mapper_data, sizeof(mapper_data));
+
+	(void)tc_aes128_set_encrypt_key(&tc_sched, lorawan_config.payload_key);
+
+	/* Use HWRNG to seed the PRNG.  Reuse the payload_encbuf buffer. */
+	err = entropy_get_entropy(ctx->entropy_dev,
+				  &payload_encbuf[0],
+				  sizeof(payload_encbuf));
+	if (err) {
+		LOG_ERR("ENTROPY: failed to obtain entropy.");
+		return -EIO;
+	}
+	err = tc_ctr_prng_reseed(&ctx->prng, &payload_encbuf[0],
+				 sizeof(payload_encbuf), 0, 0);
+	if (err != TC_CRYPTO_SUCCESS) {
+		LOG_ERR("PRNG failed");
+		return -EIO;
+	}
+
+	/* fill-in IV from PRNG. */
+	err = tc_ctr_prng_generate(&ctx->prng, NULL, 0,
+				   &enc_aes_iv[0], sizeof(enc_aes_iv));
+	if (err != TC_CRYPTO_SUCCESS) {
+		LOG_ERR("PRNG failed: %d", err);
+		return -EIO;
+	}
+	memset(&payload_encbuf, 0, sizeof(payload_encbuf));
+	err = tc_cbc_mode_encrypt(payload_encbuf,
+				  sizeof(payload_encbuf),
+				  &payload_clearbuf[0],
+				  sizeof(payload_clearbuf),
+				  &enc_aes_iv[0],
+				  &tc_sched);
+	if (err != TC_CRYPTO_SUCCESS) {
+		LOG_ERR("payload encrypt failed: %d", err);
+		return -EIO;
+	}
+	return 0;
+}
+#endif
+
 void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 {
 	int64_t last_pos_send_ok_sec;
@@ -685,13 +770,15 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	uint32_t inactive_time_window_sec = lorawan_config.max_inactive_time_window;
 	uint32_t max_failed_msgs = lorawan_config.max_failed_msg;
 	int err;
+	size_t payload_size = 0;
+	uint8_t *payload = NULL;
 
 	if (!lorawan_status.joined) {
 		LOG_WRN("Not joined");
 		return;
 	}
 
-	memset(data_ptr, 0, sizeof(struct s_mapper_data));
+	memset(&mapper_data, 0, sizeof(struct s_mapper_data));
 
 	mapper_data.fix = ctx->gps_fix ? 1 : 0;
 
@@ -707,8 +794,8 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 	read_location(&mapper_data);
 #endif
 
-	LOG_HEXDUMP_DBG(data_ptr, sizeof(struct s_mapper_data),
-			"mapper_data");
+	LOG_HEXDUMP_DBG(&mapper_data, sizeof(mapper_data),
+			"mapper_data_clear");
 
 	/* Send at least one confirmed msg on every 10 to check connectivity */
 	if (msg_type == LORAWAN_MSG_UNCONFIRMED &&
@@ -718,9 +805,24 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 
 	LOG_INF("Lora send -------------->");
 
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	if (should_encrypt_payload()) {
+		err = encrypt_payload(ctx);
+		if (err)
+			return;
+		payload = &payload_encbuf[0];
+		payload_size = sizeof(payload_encbuf);
+	} else
+#endif
+	{
+		/* No payload key. Send in clear. */
+		payload_size = sizeof(struct s_mapper_data);
+		payload = (uint8_t *)&mapper_data;
+	}
+
 	led_enable(&led_blue, 0);
 	err = lorawan_send(lorawan_config.app_port,
-			data_ptr, sizeof(struct s_mapper_data),
+			payload, payload_size,
 			msg_type);
 	if (err < 0) {
 		//TODO: make special LED pattern in this case
@@ -882,6 +984,27 @@ void main(void)
 #if IS_ENABLED(CONFIG_BT)
 	ret = init_ble();
 	if (ret) {
+		return;
+	}
+#endif
+
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	uint8_t entropy[128];
+
+	ctx->entropy_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_entropy));
+	if (!device_is_ready(ctx->entropy_dev)) {
+		LOG_ERR("ENTROPY: random device not ready!");
+		return;
+	}
+	ret = entropy_get_entropy(ctx->entropy_dev, &entropy[0], sizeof(entropy));
+	if (ret) {
+		LOG_ERR("ENTROPY: failed to obtain entropy.");
+		return;
+	}
+
+	ret = tc_ctr_prng_init(&ctx->prng, &entropy[0], sizeof(entropy), 0, 0U);
+	if (ret != TC_CRYPTO_SUCCESS) {
+		LOG_ERR("PRNG init error.");
 		return;
 	}
 #endif
