@@ -67,9 +67,7 @@ static const struct divider_config divider_config = {
 	.full_ohm = DT_PROP(VBATT, full_ohms),
 };
 
-// OLD
 static struct divider_data divider_data = {
-	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(VBATT)),
 	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(VBATT, 0),
 };
 
@@ -80,9 +78,7 @@ static struct divider_data divider_data = {
 static const struct divider_config divider_config = {
 };
 
-// OLD
 static struct divider_data divider_data = {
-	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(ZEPHYR_USER)),
 	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(ZEPHYR_USER, 0),
 };
 
@@ -103,7 +99,7 @@ static int divider_setup(void)
 	struct divider_data *ddp = &divider_data;
 	const struct device *adc_dev = ddp->adc_channel.dev;
 	struct adc_sequence *asp = &ddp->adc_seq;
-	struct adc_channel_cfg *accp = &ddp->adc_cfg;
+	//struct adc_channel_cfg *accp = &ddp->adc_cfg;
 	int rc;
 
 	if (!device_is_ready(adc_dev)) {
@@ -125,7 +121,7 @@ static int divider_setup(void)
 	}
 
 	*asp = (struct adc_sequence){
-		.channels = BIT(0),
+		//.channels = BIT(0),
 		.buffer = &ddp->raw,
 		.buffer_size = sizeof(ddp->raw),
 		.oversampling = 4,
@@ -159,12 +155,14 @@ static int divider_setup(void)
 
 	rc = adc_channel_setup_dt(&ddp->adc_channel);
 	if (rc < 0) {
-		LOG_ERR("Could not setup channel #0 (%d)", rc);
+		LOG_ERR("Could not setup channel #%d (%d)",
+				ddp->adc_channel.channel_id, rc);
 		return rc;
 	}
-#if OLD
-	LOG_DBG("Setup AIN%u got %d", iocp->channel, rc);
-#endif
+
+	LOG_INF("%s, setup channel #%d (%d)", adc_dev->name,
+			ddp->adc_channel.channel_id, rc);
+
 	(void)adc_sequence_init_dt(&ddp->adc_channel, asp);
 
 	return rc;
@@ -208,8 +206,40 @@ int battery_sample(void)
 		const struct divider_config *dcp = &divider_config;
 		struct adc_sequence *sp = &ddp->adc_seq;
 
-		rc = adc_read(adc_dev, sp);
+		LOG_INF("%s, channel %d: ", adc_dev->name,
+				ddp->adc_channel.channel_id);
 
+		//Already setup in divider_setup
+		//rc = adc_channel_setup_dt(&ddp->adc_channel);
+
+		rc = adc_read(adc_dev, sp);
+		if (rc < 0) {
+			return rc;
+		}
+
+#if 1
+		int32_t val_mv = ddp->raw;
+
+		sp->calibrate = false;
+		rc = adc_raw_to_millivolts_dt(&ddp->adc_channel, &val_mv);
+		if (rc < 0) {
+			LOG_ERR("(value in mV not available)");
+			return rc;
+		}
+
+		if (dcp->output_ohm != 0) {
+			rc = val_mv * (uint64_t)dcp->full_ohm
+				/ dcp->output_ohm;
+			//LOG_DBG("raw %u ~ %u mV => %d mV",
+			LOG_INF("raw (0x%x) %u ~ %u mV => %d mV",
+					ddp->raw, ddp->raw, val_mv, rc);
+		} else {
+			rc = val_mv;
+			//LOG_DBG("raw %u ~ %u mV", ddp->raw, val_mv);
+			LOG_INF("raw (0x%x) %u ~ %u mV",
+					ddp->raw, ddp->raw, val_mv);
+		}
+#else
 		sp->calibrate = false;
 		if (rc == 0) {
 			int32_t val = ddp->raw;
@@ -222,13 +252,16 @@ int battery_sample(void)
 			if (dcp->output_ohm != 0) {
 				rc = val * (uint64_t)dcp->full_ohm
 					/ dcp->output_ohm;
-				LOG_DBG("raw %u ~ %u mV => %d mV",
+				//LOG_DBG("raw %u ~ %u mV => %d mV",
+				LOG_INF("raw %u ~ %u mV => %d mV",
 					ddp->raw, val, rc);
 			} else {
 				rc = val;
-				LOG_DBG("raw %u ~ %u mV", ddp->raw, val);
+				//LOG_DBG("raw %u ~ %u mV", ddp->raw, val);
+				LOG_INF("raw %u ~ %u mV", ddp->raw, val);
 			}
 		}
+#endif
 	}
 
 	return rc;
