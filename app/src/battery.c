@@ -36,7 +36,6 @@ struct divider_config {
 #if OLD
 	struct io_channel_config io_channel;
 #endif
-	struct adc_dt_spec adc_channel;
 	struct gpio_dt_spec power_gpios;
 	/* output_ohm is used as a flag value: if it is nonzero then
 	 * the battery is measured through a voltage divider;
@@ -48,6 +47,7 @@ struct divider_config {
 
 struct divider_data {
 	const struct device *adc;
+	struct adc_dt_spec adc_channel;
 	struct adc_channel_cfg adc_cfg;
 	struct adc_sequence adc_seq;
 	int16_t raw;
@@ -62,7 +62,6 @@ static const struct divider_config divider_config = {
 		DT_IO_CHANNELS_INPUT(VBATT),
 	},
 #endif
-	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(VBATT, 0),
 	.power_gpios = GPIO_DT_SPEC_GET_OR(VBATT, power_gpios, {}),
 	.output_ohm = DT_PROP(VBATT, output_ohms),
 	.full_ohm = DT_PROP(VBATT, full_ohms),
@@ -71,6 +70,7 @@ static const struct divider_config divider_config = {
 // OLD
 static struct divider_data divider_data = {
 	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(VBATT)),
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(VBATT, 0),
 };
 
 #else
@@ -78,12 +78,12 @@ static struct divider_data divider_data = {
 	DT_NODE_HAS_PROP(ZEPHYR_USER, io_channels)
 
 static const struct divider_config divider_config = {
-	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(ZEPHYR_USER, 0),
 };
 
 // OLD
 static struct divider_data divider_data = {
 	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(ZEPHYR_USER)),
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(ZEPHYR_USER, 0),
 };
 
 #else
@@ -101,12 +101,13 @@ static int divider_setup(void)
 #endif
 	const struct gpio_dt_spec *gcp = &cfg->power_gpios;
 	struct divider_data *ddp = &divider_data;
+	const struct device *adc_dev = ddp->adc_channel.dev;
 	struct adc_sequence *asp = &ddp->adc_seq;
 	struct adc_channel_cfg *accp = &ddp->adc_cfg;
 	int rc;
 
-	if (!device_is_ready(ddp->adc)) {
-		LOG_ERR("ADC device is not ready %s", ddp->adc->name);
+	if (!device_is_ready(adc_dev)) {
+		LOG_ERR("ADC device is not ready %s", adc_dev->name);
 		return -ENOENT;
 	}
 
@@ -131,6 +132,7 @@ static int divider_setup(void)
 		.calibrate = true,
 	};
 
+#if 0
 #ifdef CONFIG_ADC_NRFX_SAADC
 	*accp = (struct adc_channel_cfg){
 		.gain = BATTERY_ADC_GAIN,
@@ -152,10 +154,18 @@ static int divider_setup(void)
 #error Unsupported ADC
 #endif /* CONFIG_ADC_var */
 
-	rc = adc_channel_setup(ddp->adc, accp);
+	//rc = adc_channel_setup(adc_dev, accp);
+#endif
+
+	rc = adc_channel_setup_dt(&ddp->adc_channel);
+	if (rc < 0) {
+		LOG_ERR("Could not setup channel #0 (%d)", rc);
+		return rc;
+	}
 #if OLD
 	LOG_DBG("Setup AIN%u got %d", iocp->channel, rc);
 #endif
+	(void)adc_sequence_init_dt(&ddp->adc_channel, asp);
 
 	return rc;
 }
@@ -194,15 +204,17 @@ int battery_sample(void)
 
 	if (battery_ok) {
 		struct divider_data *ddp = &divider_data;
+		const struct device *adc_dev = ddp->adc_channel.dev;
 		const struct divider_config *dcp = &divider_config;
 		struct adc_sequence *sp = &ddp->adc_seq;
 
-		rc = adc_read(ddp->adc, sp);
+		rc = adc_read(adc_dev, sp);
+
 		sp->calibrate = false;
 		if (rc == 0) {
 			int32_t val = ddp->raw;
 
-			adc_raw_to_millivolts(adc_ref_internal(ddp->adc),
+			adc_raw_to_millivolts(adc_ref_internal(adc_dev),
 					      ddp->adc_cfg.gain,
 					      sp->resolution,
 					      &val);
