@@ -21,14 +21,22 @@
 LOG_MODULE_REGISTER(battery, CONFIG_ADC_LOG_LEVEL);
 
 #define VBATT DT_PATH(vbatt)
+#define ZEPHYR_USER DT_PATH(zephyr_user)
+
 #define BATTERY_ADC_GAIN ADC_GAIN_1_5
 
+#define OLD 0
+#if OLD
 struct io_channel_config {
 	uint8_t channel;
 };
+#endif
 
 struct divider_config {
+#if OLD
 	struct io_channel_config io_channel;
+#endif
+	struct adc_dt_spec adc_channel;
 	struct gpio_dt_spec power_gpios;
 	/* output_ohm is used as a flag value: if it is nonzero then
 	 * the battery is measured through a voltage divider;
@@ -38,33 +46,59 @@ struct divider_config {
 	uint32_t full_ohm;
 };
 
-static const struct divider_config divider_config = {
-#if DT_NODE_HAS_STATUS(VBATT, okay)
-	.io_channel = {
-		DT_IO_CHANNELS_INPUT(VBATT),
-	},
-	.power_gpios = GPIO_DT_SPEC_GET_OR(VBATT, power_gpios, {}),
-	.output_ohm = DT_PROP(VBATT, output_ohms),
-	.full_ohm = DT_PROP(VBATT, full_ohms),
-#else
-#error "Node vbatt not available into device tree"
-#endif
-};
-
 struct divider_data {
 	const struct device *adc;
 	struct adc_channel_cfg adc_cfg;
 	struct adc_sequence adc_seq;
 	int16_t raw;
 };
+
+#if DT_NODE_EXISTS(VBATT) && \
+	DT_NODE_HAS_PROP(VBATT, io_channels)
+
+static const struct divider_config divider_config = {
+#if OLD
+	.io_channel = {
+		DT_IO_CHANNELS_INPUT(VBATT),
+	},
+#endif
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(VBATT, 0),
+	.power_gpios = GPIO_DT_SPEC_GET_OR(VBATT, power_gpios, {}),
+	.output_ohm = DT_PROP(VBATT, output_ohms),
+	.full_ohm = DT_PROP(VBATT, full_ohms),
+};
+
+// OLD
 static struct divider_data divider_data = {
 	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(VBATT)),
 };
 
+#else
+#if DT_NODE_EXISTS(ZEPHYR_USER) && \
+	DT_NODE_HAS_PROP(ZEPHYR_USER, io_channels)
+
+static const struct divider_config divider_config = {
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(ZEPHYR_USER, 0),
+};
+
+// OLD
+static struct divider_data divider_data = {
+	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(ZEPHYR_USER)),
+};
+
+#else
+#error "No suitable devicetree overlay specified, vbatt or zephyr,user"
+#endif	/* zephyr_user */
+#endif	/* vbatt */
+
+
+
 static int divider_setup(void)
 {
 	const struct divider_config *cfg = &divider_config;
+#if OLD
 	const struct io_channel_config *iocp = &cfg->io_channel;
+#endif
 	const struct gpio_dt_spec *gcp = &cfg->power_gpios;
 	struct divider_data *ddp = &divider_data;
 	struct adc_sequence *asp = &ddp->adc_seq;
@@ -105,8 +139,10 @@ static int divider_setup(void)
 	};
 
 	if (cfg->output_ohm != 0) {
+#if OLD
 		accp->input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0
 			+ iocp->channel;
+#endif
 	} else {
 		accp->input_positive = SAADC_CH_PSELP_PSELP_VDD;
 	}
@@ -117,7 +153,9 @@ static int divider_setup(void)
 #endif /* CONFIG_ADC_var */
 
 	rc = adc_channel_setup(ddp->adc, accp);
+#if OLD
 	LOG_DBG("Setup AIN%u got %d", iocp->channel, rc);
+#endif
 
 	return rc;
 }

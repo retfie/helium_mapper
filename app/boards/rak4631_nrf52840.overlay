@@ -20,8 +20,31 @@
 	vbatt {
 		compatible = "voltage-divider";
 		io-channels = <&adc 3>;
+		io-channel-names = "BATTERY";
 		output-ohms = <1500000>;
 		full-ohms = <(1000000 + 1500000)>;
+	};
+
+/*
+	zephyr,user {
+		io-channels = <&adc 3>;
+		io-channel-names = "BATTERY";
+	};
+*/
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@3 {
+		reg = <3>;
+		zephyr,gain = "ADC_GAIN_1_5";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_ADC_AIN0>;
+		zephyr,resolution = <14>;
+		zephyr,oversampling = <8>;
 	};
 };
 
