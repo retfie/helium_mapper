@@ -18,7 +18,8 @@
 
 #include "battery.h"
 
-LOG_MODULE_REGISTER(battery, CONFIG_ADC_LOG_LEVEL);
+//LOG_MODULE_REGISTER(battery, CONFIG_ADC_LOG_LEVEL);
+LOG_MODULE_REGISTER(battery, 4);
 
 #define VBATT DT_PATH(vbatt)
 #define ZEPHYR_USER DT_PATH(zephyr_user)
@@ -153,6 +154,39 @@ static int divider_setup(void)
 	//rc = adc_channel_setup(adc_dev, accp);
 #endif
 
+#if 0
+	//k_sleep(K_SECONDS(5));
+
+	LOG_INF("asp.channels: %x", asp->channels);
+	LOG_INF("asp.oversampling: %d", asp->oversampling);
+	LOG_INF("asp.calibrate: %d", asp->calibrate);
+	LOG_INF("asp.resolution: %d", asp->resolution);
+
+	//LOG_INF("accp.gain: %d", accp->gain);
+	//LOG_INF("accp.reference: %d", accp->reference);
+	//LOG_INF("accp.acq_time: %d", accp->acquisition_time);
+	//LOG_INF("accp.input_positive: %u", accp->input_positive);
+	//LOG_INF("accp.input_negative: %u", accp->input_negative);
+
+	LOG_INF("adc_channel.channel_id: %d", ddp->adc_channel.channel_id);
+
+	LOG_INF("adc_ch.cfg.gain: %x", ddp->adc_channel.channel_cfg.gain);
+	LOG_INF("adc_ch.cfg.reference: %x", ddp->adc_channel.channel_cfg.reference);
+	LOG_INF("adc_ch.cfg.acq_tim: %x", ddp->adc_channel.channel_cfg.acquisition_time);
+	LOG_INF("adc_ch.cfg.channel_id: %x", ddp->adc_channel.channel_cfg.channel_id);
+	LOG_INF("adc_ch.cfg.diff: %x", ddp->adc_channel.channel_cfg.differential);
+	LOG_INF("adc_ch.cfg.input_positive: %u", ddp->adc_channel.channel_cfg.input_positive);
+	LOG_INF("adc_ch.cfg.input_negative: %u", ddp->adc_channel.channel_cfg.input_negative);
+
+	LOG_INF("adc_channel.vref_mv: %d", ddp->adc_channel.vref_mv);
+	LOG_INF("adc_channel.resolution: %d", ddp->adc_channel.resolution);
+	LOG_INF("adc_channel.oversampling: %d", ddp->adc_channel.oversampling);
+
+	//LOG_INF("asp.oversampling: %d", asp->oversampling);
+	//LOG_INF("asp.calibrate: %d", asp->calibrate);
+	//LOG_INF("asp.resolution: %d", asp->resolution);
+#endif
+
 	rc = adc_channel_setup_dt(&ddp->adc_channel);
 	if (rc < 0) {
 		LOG_ERR("Could not setup channel #%d (%d)",
@@ -232,6 +266,8 @@ int battery_sample(void)
 				/ dcp->output_ohm;
 			//LOG_DBG("raw %u ~ %u mV => %d mV",
 			LOG_INF("raw (0x%x) %u ~ %u mV => %d mV",
+					ddp->raw, ddp->raw, val_mv, rc);
+			printk("printk: raw (0x%x) %u ~ %u mV => %d mV\n",
 					ddp->raw, ddp->raw, val_mv, rc);
 		} else {
 			rc = val_mv;
