@@ -842,7 +842,7 @@ void main(void)
 #if IS_ENABLED(CONFIG_SETTINGS)
 	ret = load_config();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
@@ -850,32 +850,32 @@ void main(void)
 
 	ret = init_accel(ctx);
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	ret = init_gps();
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 	ret = gps_set_trigger_handler(gps_trigger_handler);
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 	ret = init_usb_console();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
 #if IS_ENABLED(CONFIG_SHELL)
 	ret = init_shell();
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 	shell_register_cb(shell_cb, ctx);
@@ -884,7 +884,7 @@ void main(void)
 #if IS_ENABLED(CONFIG_BT)
 	ret = init_ble();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
@@ -893,7 +893,7 @@ void main(void)
 		LOG_ERR("Rebooting in 30 sec.");
 		k_sleep(K_SECONDS(30));
 		sys_reboot(SYS_REBOOT_WARM);
-		return;
+		goto fail;
 	}
 
 	while (true) {
@@ -905,5 +905,15 @@ void main(void)
 			app_evt_handler(ev, ctx);
 			app_evt_free(ev);
 		}
+	}
+
+fail:
+	while (true) {
+		if (&led_blue.port) {
+			gpio_pin_set_dt(&led_blue, 0);
+			k_sleep(K_MSEC(250));
+			gpio_pin_set_dt(&led_blue, 1);
+		}
+		k_sleep(K_SECONDS(1));
 	}
 }
