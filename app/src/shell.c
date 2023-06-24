@@ -356,13 +356,16 @@ static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv
 {
 	if (argc < 2) {
 		shell_print(shell, "%u sec", lorawan_config.send_repeat_time);
+		if (shell_ctx.shell_cb) {
+			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER_GET, shell_ctx.data);
+		}
 	} else {
 		lorawan_config.send_repeat_time = atoi(argv[1]);
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_repeat_time");
 #endif
 		if (shell_ctx.shell_cb) {
-			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER, shell_ctx.data);
+			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER_SET, shell_ctx.data);
 		}
 	}
 
