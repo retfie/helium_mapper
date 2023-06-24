@@ -504,6 +504,11 @@ void lorawan_state(struct s_helium_mapper_ctx *ctx, enum lorawan_state_e state)
 		/* Turn green led on to indicate not joined state */
 		led_enable(&led_green, 0);
 
+		if (!lorawan_config.auto_join) {
+			LOG_WRN("Join is not enabled");
+			break;
+		}
+
 		lorawan_status.joined = false;
 		LOG_INF("Lora join timer start for %d sec", join_try_interval_sec);
 		k_timer_start(&ctx->lora_join_timer, K_SECONDS(join_try_interval_sec),
