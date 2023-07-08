@@ -1009,6 +1009,8 @@ void main(void)
 	}
 #endif
 
+	init_timers(ctx);
+
 	ret = init_lora(ctx);
 	if (ret) {
 		LOG_ERR("Rebooting in 30 sec.");
@@ -1017,7 +1019,6 @@ void main(void)
 		return;
 	}
 
-	init_timers(ctx);
 
 	while (true) {
 		LOG_INF("Waiting for events...");
