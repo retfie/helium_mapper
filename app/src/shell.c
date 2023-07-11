@@ -9,6 +9,7 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/shell/shell.h>
 #include <version.h>
+#include <app_version.h>
 #include <zephyr/posix/time.h>
 #include <zephyr/sys/timeutil.h>
 
@@ -69,8 +70,9 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	int i;
 
 	shell_print(shell, "Device config:");
-	shell_print(shell, "  RAK4631 Helium mapper: %s, %s %s", STRINGIFY(BUILD_VERSION),
-			__DATE__, __TIME__);
+	shell_print(shell, "  RAK4631 Helium mapper (built: %s %s)", __DATE__, __TIME__);
+	shell_print(shell, "    Kernel ver:    %s", STRINGIFY(BUILD_VERSION));
+	shell_print(shell, "    App ver:       %s", STRINGIFY(APP_BUILD_VERSION));
 
 	shell_fprintf(shell, SHELL_NORMAL, "  Dev EUI          ");
 	for (i = 0; i < sizeof(lorawan_config.dev_eui); i++) {
