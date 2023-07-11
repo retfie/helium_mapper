@@ -846,6 +846,8 @@ void main(void)
 	}
 #endif
 
+	init_timers(ctx);
+
 	ret = init_accel(ctx);
 	if (ret) {
 		return;
@@ -893,8 +895,6 @@ void main(void)
 		sys_reboot(SYS_REBOOT_WARM);
 		return;
 	}
-
-	init_timers(ctx);
 
 	while (true) {
 		LOG_INF("Waiting for events...");
