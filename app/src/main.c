@@ -909,7 +909,7 @@ void main(void)
 
 fail:
 	while (true) {
-		if (&led_blue.port) {
+		if (led_blue.port) {
 			gpio_pin_set_dt(&led_blue, 0);
 			k_sleep(K_MSEC(250));
 			gpio_pin_set_dt(&led_blue, 1);
