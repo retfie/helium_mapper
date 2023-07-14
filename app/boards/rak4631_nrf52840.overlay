@@ -70,3 +70,15 @@
 		compatible = "zephyr,cdc-acm-uart";
 	};
 };
+
+&boot_partition {
+	reg = <0x00000000 0x00010000>;
+};
+
+&slot0_partition {
+	reg = <0x00010000 0x00072000>;
+};
+
+&slot1_partition {
+	reg = <0x00082000 0x00072000>;
+};

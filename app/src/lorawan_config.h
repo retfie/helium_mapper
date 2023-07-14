@@ -44,6 +44,10 @@ struct s_lorawan_config
 	uint32_t max_inactive_time_window;
 	/* Number of failed message before re-join */
 	uint32_t max_failed_msg;
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	/* AES128 key for encrypting the payload. */
+	uint8_t payload_key[128/8];
+#endif
 };
 
 extern struct s_lorawan_config lorawan_config;

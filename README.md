@@ -176,5 +176,211 @@ for example "Serial Bluetooth Terminal" for Android.
 
 ![BT NUS Terminal](doc/img/bt_nus.png)
 
+### Bluetooth serial console from PC
+```
+pip install ble-serial
+ble-scan
+Started general BLE scan
+
+F1:44:8D:xx:xx:xx (RSSI=-48): Hellium_mapper
+....
+```
+
+connect to device
+```
+ble-serial -d F1:44:8D:xx:xx:xx
+16:29:56.569 | INFO | linux_pty.py: Port endpoint created on /tmp/ttyBLE -> /dev/pts/66
+...
+```
+
+Open another console and open /tmp/ttyBLE (at 115200 for example) with screen, or other terminal program.
+```
+screen /tmp/ttyBLE 115200
+uart:~$ config
+Device config:
+  RAK4631 Helium mapper: zephyr-v3.2.0-1753-g179de6d0d08c, Mar 20 2023 11:50:51
+  Dev EUI          0011223344556677
+  APP EUI          0011223344556677
+  APP key          00112233445566778899aabbccddeeff
+  Auto join        true
+  Data rate/DR+    3
+  Confirmed msgs   false
+  Max failed msgs  120
+  Inactive window  10800 sec
+  Send interval    3600 sec
+  Min delay        15 sec
+  Max GPS ON time  300 sec
+uart:~$
+uart:~$ status
+Device status:
+  joined           true
+  delayed active   false
+  gps power on     false
+  messages sent    19
+  messages failed  0
+  msg failed total 0
+  Accel events     4
+  Join retry sess  0
+  Total GPS ON     5756 sec
+  last msg sent    2034 sec
+  last msg sent OK 2034 sec
+  last acc event   4754 sec
+  Uptime           0000-00-00 18:38:57
+uart:~$
+```
+
 ### RTT terminal
 RTT console is supported and verified with J-link jtag adapter.
+
+### Bootloader and DFU support
+Update Zephyr modules
+```
+cd helium_mapper_project
+west update
+```
+
+Build MCUboot loader with RTT support
+```
+west build --pristine -b rak4631_nrf52840 -d build_mcuboot_rak4631_nrf52840_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
+```
+
+Flash bootloader
+```
+west flash -d build_mcuboot_rak4631_nrf52840_dfu --softreset -r nrfjprog
+```
+After this point, device has DFU capable bootloader, and during boot stays into this mode for 10sec before try to find valid image:
+
+```
+[2499323.353638] cdc_acm 1-2:1.0: ttyACM1: USB ACM device
+[2499688.730597] usb 1-4.1: USB disconnect, device number 99
+[2499693.211998] usb 1-4.1: new full-speed USB device number 101 using xhci_hcd
+[2499693.342076] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
+[2499693.342086] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[2499693.342091] usb 1-4.1: Product: MCUBOOT
+[2499693.342094] usb 1-4.1: Manufacturer: ZEPHYR
+```
+
+NOTE !!!
+Device will try to boot from Slot-0, and it is empty. We must flash any MCUBOOT capable app into it!
+
+build dfu capable app for Slot-0 \
+add -DCONFIG_USB_DFU_REBOOT=y to automatically reboot after successfull image upload, or manually reboot device
+```
+cd helium_mapper
+west build -b rak4631_nrf52840 -s app -- -DCONFIG_USB_DFU_REBOOT=y
+west flash --hex-file build/zephyr/zephyr.signed.hex --softreset -r nrfjprog
+```
+
+If bootloader wasn't built with auto DFU reboot, please reboot device manually. Here is what dmesg should show:
+```
+[2501534.271778] usb 1-4.1: new full-speed USB device number 108 using xhci_hcd
+[2501534.394713] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
+[2501534.394726] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[2501534.394730] usb 1-4.1: Product: MCUBOOT
+[2501534.394734] usb 1-4.1: Manufacturer: ZEPHYR
+[2501544.770625] usb 1-4.1: USB disconnect, device number 108
+[2501545.000203] usb 1-4.1: new full-speed USB device number 109 using xhci_hcd
+[2501545.122567] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
+[2501545.122579] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[2501545.122583] usb 1-4.1: Product: Zephyr DFU Helium Mapper
+[2501545.122586] usb 1-4.1: Manufacturer: ZEPHYR
+[2501545.188662] cdc_acm 1-4.1:1.0: ttyACM0: USB ACM device
+```
+
+From this point you will have MCUboot capable device, and any new version of app could be uploaded via DFU.\
+( Just make sure that it has mcuboot support and mcuboot shell capabilities, to confirm any new image uploaded ).
+
+Build new version and upload it with DFU util into slot-1:
+```
+dfu-util --alt 1 -d 2fe3:0100 --download build/zephyr/zephyr.signed.bin
+dfu-util 0.9
+
+Copyright 2005-2009 Weston Schmidt, Harald Welte and OpenMoko Inc.
+Copyright 2010-2016 Tormod Volden and Stefan Schmidt
+This program is Free Software and has ABSOLUTELY NO WARRANTY
+Please report bugs to http://sourceforge.net/p/dfu-util/tickets/
+
+dfu-util: Invalid DFU suffix signature
+dfu-util: A valid DFU suffix will be required in a future dfu-util release!!!
+Opening DFU capable USB device...
+ID 2fe3:0100
+Run-time device DFU version 0110
+Claiming USB DFU Runtime Interface...
+Determining device status: state = appIDLE, status = 0
+Device really in Runtime Mode, send DFU detach request...
+Device will detach and reattach...
+Opening DFU USB Device...
+Claiming USB DFU Interface...
+Setting Alternate Setting #1 ...
+Determining device status: state = dfuIDLE, status = 0
+dfuIDLE, continuing
+DFU mode device DFU version 0110
+Device returned transfer size 128
+Copying data from PC to DFU device
+Download        [=========================] 100%       345272 bytes
+Download done.
+state(4) = dfuDNBUSY, status(0) = No error condition is present
+Done!
+```
+
+Reboot device manually via reset if CONFIG_USB_DFU_REBOOT=y not used.
+
+
+Once new image boots, open serial console to device, and use mcuboot command to confirm new image if its OK, and then reboot device to verify that new image is loaded.
+```
+mcuboot confirm
+reboot
+```
+
+Example output from device serial console:
+```
+uart:~$ mcuboot
+swap type: revert
+confirmed: 0
+
+primary area (1):
+  version: 0.0.0+0
+  image size: 344424
+  magic: good
+  swap type: test
+  copy done: set
+  image ok: unset
+
+secondary area (2):
+  version: 0.0.0+0
+  image size: 344424
+  magic: unset
+  swap type: none
+  copy done: unset
+  image ok: unset
+[00:01:12.956,359] <inf> mcuboot_util: Swap type: revert
+
+uart:~$ mcuboot confirm
+
+uart:~$ mcuboot
+swap type: none
+confirmed: 1
+
+primary area (1):
+  version: 0.0.0+0
+  image size: 344424
+  magic: good
+  swap type: test
+  copy done: set
+  image ok: set
+
+secondary area (2):
+  version: 0.0.0+0
+  image size: 344424
+  magic: unset
+  swap type: none
+  copy done: unset
+  image ok: unset
+[00:01:40.986,907] <inf> mcuboot_util: Swap type: none
+```
+
+Note! In case new image not confirmed, or fails to boot, it will automatically revert to last working image into slot-0
+
+### Payload Encryption
+
+The optional payload encryption support is documented [here](./PAYLOAD-ENCRYPTION.md).
