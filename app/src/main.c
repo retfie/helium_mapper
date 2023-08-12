@@ -83,7 +83,7 @@ struct s_status lorawan_status = {
 struct s_mapper_data mapper_data;
 char *data_ptr = (char*)&mapper_data;
 
-#define LORA_JOIN_THREAD_STACK_SIZE 1024
+#define LORA_JOIN_THREAD_STACK_SIZE 1500
 #define LORA_JOIN_THREAD_PRIORITY 10
 K_KERNEL_STACK_MEMBER(lora_join_thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
 
