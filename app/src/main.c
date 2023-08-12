@@ -95,8 +95,9 @@ struct s_status lorawan_status = {
 
 struct s_mapper_data mapper_data;
 
-#define LORA_JOIN_THREAD_STACK_SIZE 1500
+#define LORA_JOIN_THREAD_STACK_SIZE 1024
 #define LORA_JOIN_THREAD_PRIORITY 10
+K_KERNEL_STACK_MEMBER(lora_join_thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 #define TC_AES_IV_NBYTES 16
@@ -112,7 +113,6 @@ struct s_helium_mapper_ctx {
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
 	struct k_timer lora_join_timer;
-	K_KERNEL_STACK_MEMBER(thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
 	struct k_thread thread;
 	struct k_sem lora_join_sem;
 	bool gps_fix;
@@ -528,6 +528,11 @@ void lorawan_state(struct s_helium_mapper_ctx *ctx, enum lorawan_state_e state)
 		/* Turn green led on to indicate not joined state */
 		led_enable(&led_green, 0);
 
+		if (!lorawan_config.auto_join) {
+			LOG_WRN("Join is not enabled");
+			break;
+		}
+
 		lorawan_status.joined = false;
 		LOG_INF("Lora join timer start for %d sec", join_try_interval_sec);
 		k_timer_start(&ctx->lora_join_timer, K_SECONDS(join_try_interval_sec),
@@ -637,8 +642,8 @@ int init_lora(struct s_helium_mapper_ctx *ctx) {
 
 	k_sem_init(&ctx->lora_join_sem, 0, K_SEM_MAX_LIMIT);
 
-	k_thread_create(&ctx->thread, ctx->thread_stack,
-			LORA_JOIN_THREAD_STACK_SIZE,
+	k_thread_create(&ctx->thread, lora_join_thread_stack,
+			K_THREAD_STACK_SIZEOF(lora_join_thread_stack),
 			(k_thread_entry_t)lora_join_thread, ctx, NULL, NULL,
 			K_PRIO_PREEMPT(LORA_JOIN_THREAD_PRIORITY), 0,
 			K_SECONDS(1));
@@ -859,8 +864,12 @@ void shell_cb(enum shell_cmd_event event, void *data) {
 	struct s_helium_mapper_ctx *ctx = (struct s_helium_mapper_ctx *)data;
 
 	switch (event) {
-	case SHELL_CMD_SEND_TIMER:
+	case SHELL_CMD_SEND_TIMER_SET:
 		update_send_timer(ctx);
+		break;
+	case SHELL_CMD_SEND_TIMER_GET:
+		time_t time_st_left = k_timer_remaining_get(&ctx->send_timer);
+		LOG_INF("Send timer %lld sec left", time_st_left / 1000);
 		break;
 	default:
 		LOG_WRN("Unknown shell cmd event");
@@ -944,38 +953,40 @@ void main(void)
 #if IS_ENABLED(CONFIG_SETTINGS)
 	ret = load_config();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
+	init_timers(ctx);
+
 	ret = init_accel(ctx);
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	ret = init_gps();
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 	ret = gps_set_trigger_handler(gps_trigger_handler);
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 	ret = init_usb_console();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
 #if IS_ENABLED(CONFIG_SHELL)
 	ret = init_shell();
 	if (ret) {
-		return;
+		goto fail;
 	}
 
 	shell_register_cb(shell_cb, ctx);
@@ -984,7 +995,7 @@ void main(void)
 #if IS_ENABLED(CONFIG_BT)
 	ret = init_ble();
 	if (ret) {
-		return;
+		goto fail;
 	}
 #endif
 
@@ -1014,10 +1025,8 @@ void main(void)
 		LOG_ERR("Rebooting in 30 sec.");
 		k_sleep(K_SECONDS(30));
 		sys_reboot(SYS_REBOOT_WARM);
-		return;
+		goto fail;
 	}
-
-	init_timers(ctx);
 
 	while (true) {
 		LOG_INF("Waiting for events...");
@@ -1028,5 +1037,15 @@ void main(void)
 			app_evt_handler(ev, ctx);
 			app_evt_free(ev);
 		}
+	}
+
+fail:
+	while (true) {
+		if (led_blue.port) {
+			gpio_pin_set_dt(&led_blue, 0);
+			k_sleep(K_MSEC(250));
+			gpio_pin_set_dt(&led_blue, 1);
+		}
+		k_sleep(K_SECONDS(1));
 	}
 }

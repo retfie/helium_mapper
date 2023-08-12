@@ -21,14 +21,9 @@
 LOG_MODULE_REGISTER(battery, CONFIG_ADC_LOG_LEVEL);
 
 #define VBATT DT_PATH(vbatt)
-#define BATTERY_ADC_GAIN ADC_GAIN_1_5
-
-struct io_channel_config {
-	uint8_t channel;
-};
+#define ZEPHYR_USER DT_PATH(zephyr_user)
 
 struct divider_config {
-	struct io_channel_config io_channel;
 	struct gpio_dt_spec power_gpios;
 	/* output_ohm is used as a flag value: if it is nonzero then
 	 * the battery is measured through a voltage divider;
@@ -38,41 +33,53 @@ struct divider_config {
 	uint32_t full_ohm;
 };
 
-static const struct divider_config divider_config = {
-#if DT_NODE_HAS_STATUS(VBATT, okay)
-	.io_channel = {
-		DT_IO_CHANNELS_INPUT(VBATT),
-	},
-	.power_gpios = GPIO_DT_SPEC_GET_OR(VBATT, power_gpios, {}),
-	.output_ohm = DT_PROP(VBATT, output_ohms),
-	.full_ohm = DT_PROP(VBATT, full_ohms),
-#else
-#error "Node vbatt not available into device tree"
-#endif
-};
-
 struct divider_data {
 	const struct device *adc;
+	struct adc_dt_spec adc_channel;
 	struct adc_channel_cfg adc_cfg;
 	struct adc_sequence adc_seq;
 	int16_t raw;
 };
-static struct divider_data divider_data = {
-	.adc = DEVICE_DT_GET(DT_IO_CHANNELS_CTLR(VBATT)),
+
+#if DT_NODE_EXISTS(VBATT) && \
+	DT_NODE_HAS_PROP(VBATT, io_channels)
+
+static const struct divider_config divider_config = {
+	.power_gpios = GPIO_DT_SPEC_GET_OR(VBATT, power_gpios, {}),
+	.output_ohm = DT_PROP(VBATT, output_ohms),
+	.full_ohm = DT_PROP(VBATT, full_ohms),
 };
+
+static struct divider_data divider_data = {
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(VBATT, 0),
+};
+
+#else
+#if DT_NODE_EXISTS(ZEPHYR_USER) && \
+	DT_NODE_HAS_PROP(ZEPHYR_USER, io_channels)
+
+static const struct divider_config divider_config;
+
+static struct divider_data divider_data = {
+	.adc_channel = ADC_DT_SPEC_GET_BY_IDX(ZEPHYR_USER, 0),
+};
+
+#else
+#error "No suitable devicetree overlay specified, vbatt or zephyr,user"
+#endif	/* zephyr_user */
+#endif	/* vbatt */
 
 static int divider_setup(void)
 {
 	const struct divider_config *cfg = &divider_config;
-	const struct io_channel_config *iocp = &cfg->io_channel;
 	const struct gpio_dt_spec *gcp = &cfg->power_gpios;
 	struct divider_data *ddp = &divider_data;
+	const struct device *adc_dev = ddp->adc_channel.dev;
 	struct adc_sequence *asp = &ddp->adc_seq;
-	struct adc_channel_cfg *accp = &ddp->adc_cfg;
 	int rc;
 
-	if (!device_is_ready(ddp->adc)) {
-		LOG_ERR("ADC device is not ready %s", ddp->adc->name);
+	if (!device_is_ready(adc_dev)) {
+		LOG_ERR("ADC device is not ready %s", adc_dev->name);
 		return -ENOENT;
 	}
 
@@ -90,34 +97,28 @@ static int divider_setup(void)
 	}
 
 	*asp = (struct adc_sequence){
-		.channels = BIT(0),
 		.buffer = &ddp->raw,
 		.buffer_size = sizeof(ddp->raw),
 		.oversampling = 4,
 		.calibrate = true,
 	};
 
-#ifdef CONFIG_ADC_NRFX_SAADC
-	*accp = (struct adc_channel_cfg){
-		.gain = BATTERY_ADC_GAIN,
-		.reference = ADC_REF_INTERNAL,
-		.acquisition_time = ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40),
-	};
-
-	if (cfg->output_ohm != 0) {
-		accp->input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0
-			+ iocp->channel;
-	} else {
-		accp->input_positive = SAADC_CH_PSELP_PSELP_VDD;
+	rc = adc_channel_setup_dt(&ddp->adc_channel);
+	if (rc < 0) {
+		LOG_ERR("Could not setup channel #%d (%d)",
+				ddp->adc_channel.channel_id, rc);
+		return rc;
 	}
 
-	asp->resolution = 14;
-#else /* CONFIG_ADC_var */
-#error Unsupported ADC
-#endif /* CONFIG_ADC_var */
+	rc = adc_sequence_init_dt(&ddp->adc_channel, asp);
+	if (rc < 0) {
+		LOG_ERR("Could not init sequence on channel #%d (%d)",
+				ddp->adc_channel.channel_id, rc);
+		return rc;
+	}
 
-	rc = adc_channel_setup(ddp->adc, accp);
-	LOG_DBG("Setup AIN%u got %d", iocp->channel, rc);
+	LOG_DBG("%s, setup channel #%d (%d)", adc_dev->name,
+			ddp->adc_channel.channel_id, rc);
 
 	return rc;
 }
@@ -156,28 +157,34 @@ int battery_sample(void)
 
 	if (battery_ok) {
 		struct divider_data *ddp = &divider_data;
+		const struct device *adc_dev = ddp->adc_channel.dev;
 		const struct divider_config *dcp = &divider_config;
 		struct adc_sequence *sp = &ddp->adc_seq;
+		int32_t val_mv;
 
-		rc = adc_read(ddp->adc, sp);
+		rc = adc_read(adc_dev, sp);
+		if (rc < 0) {
+			return rc;
+		}
+
+		val_mv = ddp->raw;
 		sp->calibrate = false;
-		if (rc == 0) {
-			int32_t val = ddp->raw;
 
-			adc_raw_to_millivolts(adc_ref_internal(ddp->adc),
-					      ddp->adc_cfg.gain,
-					      sp->resolution,
-					      &val);
+		rc = adc_raw_to_millivolts_dt(&ddp->adc_channel, &val_mv);
+		if (rc < 0) {
+			LOG_ERR("value in mV not available (%d)", rc);
+			return rc;
+		}
 
-			if (dcp->output_ohm != 0) {
-				rc = val * (uint64_t)dcp->full_ohm
-					/ dcp->output_ohm;
-				LOG_DBG("raw %u ~ %u mV => %d mV",
-					ddp->raw, val, rc);
-			} else {
-				rc = val;
-				LOG_DBG("raw %u ~ %u mV", ddp->raw, val);
-			}
+		if (dcp->output_ohm != 0) {
+			rc = val_mv * (uint64_t)dcp->full_ohm
+				/ dcp->output_ohm;
+			LOG_DBG("raw (0x%x) %u ~ %u mV => %d mV",
+					ddp->raw, ddp->raw, val_mv, rc);
+		} else {
+			rc = val_mv;
+			LOG_DBG("raw (0x%x) %u ~ %u mV",
+					ddp->raw, ddp->raw, val_mv);
 		}
 	}
 

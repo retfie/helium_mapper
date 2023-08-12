@@ -42,6 +42,14 @@ static void connected(struct bt_conn *conn, uint8_t err)
 #if IS_ENABLED(CONFIG_SHELL)
 	shell_bt_nus_enable(conn);
 #endif
+
+#if defined(CONFIG_BT_SMP)
+	int ret;
+	ret = bt_conn_set_security(current_conn, BT_SECURITY_L4);
+	if (ret) {
+		LOG_ERR("Starting encryption procedure failed (%d)", ret);
+	}
+#endif
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)

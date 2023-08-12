@@ -29,7 +29,7 @@ west update
 The application can be built by running:
 
 ```shell
-west build -b rak4631_nrf52840 -s app
+west build -p -b rak4631_nrf52840 -s app
 ```
 
 Once you have built the application you can flash it by running:
