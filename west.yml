@@ -2,17 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 
 manifest:
+  defaults:
+    remote: upstream
+
   self:
     path: helium_mapper
 
   remotes:
+    - name: upstream
+      url-base: https://github.com/zephyrproject-rtos
     - name: retfie
       url-base: https://github.com/retfie
 
   projects:
     - name: zephyr
       remote: retfie
-      revision: helium_mapper_v0.02
+      revision: helium_mapper.mcuboot
       import:
         name-allowlist:
           - cmsis
@@ -20,3 +25,14 @@ manifest:
           - segger
           - tinycrypt
           - loramac-node
+    - name: mbedtls
+      revision: 7fed49c9b9f983ad6416986661ef637459723bcb
+      path: modules/crypto/mbedtls
+      groups:
+        - crypto
+    - name: mcuboot
+      revision: cfec947e0f8be686d02c73104a3b1ad0b5dcf1e6
+      path: bootloader/mcuboot
+    - name: zcbor
+      revision: 0.6.0
+      path: modules/lib/zcbor
