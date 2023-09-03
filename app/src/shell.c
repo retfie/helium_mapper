@@ -12,6 +12,7 @@
 #include <app_version.h>
 #include <zephyr/posix/time.h>
 #include <zephyr/sys/timeutil.h>
+#include <zephyr/lorawan/lorawan.h>
 
 #include "lorawan_config.h"
 #include "battery.h"
@@ -428,6 +429,26 @@ static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 	return 0;
 }
 
+static int cmd_data_rate(const struct shell *shell, size_t argc, char **argv)
+{
+	int rate;
+
+	if (argc < 2) {
+		shell_print(shell, "%d", lorawan_config.data_rate);
+	} else {
+		rate = atoi(argv[1]);
+		if (rate > LORAWAN_DR_15 || rate < LORAWAN_DR_0) {
+			return -EINVAL;
+		}
+		lorawan_config.data_rate = rate;
+#if IS_ENABLED(CONFIG_SETTINGS)
+		hm_lorawan_nvm_save_settings("data_rate");
+#endif
+	}
+
+	return 0;
+}
+
 #define HELP_DEV_EUI "Get/set dev_eui [0011223344556677]"
 #define HELP_APP_EUI "Get/set app_eui [0011223344556677]"
 #define HELP_APP_KEY "get/set app_key [00112233445566778899aabbccddeeff]"
@@ -436,6 +457,7 @@ static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 #define HELP_SEND_INTERVAL "Send interval in seconds"
 #define HELP_MIN_DELAY "Min delay between 2 messages in ms"
 #define HELP_MAX_GPS_ON "Max time GPS is ON if no one using it in seconds"
+#define HELP_DATA_RATE "Get/set data rate 0-15"
 #define HELP_PAYLOAD_KEY "get/set payload_key [00000000000000000000000000000000]"
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
@@ -447,6 +469,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
 	SHELL_CMD_ARG(send_interval, NULL, HELP_SEND_INTERVAL, cmd_send_interval, 1, 1),
 	SHELL_CMD_ARG(min_delay, NULL, HELP_MIN_DELAY, cmd_min_delay, 1, 1),
 	SHELL_CMD_ARG(max_gps_on_time, NULL, HELP_MAX_GPS_ON, cmd_max_gps_on, 1, 1),
+	SHELL_CMD_ARG(data_rate, NULL, HELP_DATA_RATE, cmd_data_rate, 1, 1),
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	SHELL_CMD_ARG(payload_key, NULL, HELP_PAYLOAD_KEY, cmd_lorawan_keys, 1, 1),
 #endif

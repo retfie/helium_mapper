@@ -35,6 +35,7 @@ static const struct hm_nvm_setting_descr hm_nvm_setting_descriptors[] = {
 	HM_NVM_SETTING_DESCR(send_repeat_time),
 	HM_NVM_SETTING_DESCR(send_min_delay),
 	HM_NVM_SETTING_DESCR(max_gps_on_time),
+	HM_NVM_SETTING_DESCR(data_rate),
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	HM_NVM_SETTING_DESCR(payload_key),
 #endif
