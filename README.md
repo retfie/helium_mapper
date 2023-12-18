@@ -37,7 +37,7 @@ west update
 The application can be built by running:
 
 ```shell
-west build -p -b rak4631_nrf52840 -s app
+west build -p -b rak4631 -s app
 ```
 
 Once you have built the application you can flash it by running:
@@ -249,12 +249,12 @@ west update
 
 Build MCUboot loader with RTT support
 ```
-west build --pristine -b rak4631_nrf52840 -d build_mcuboot_rak4631_nrf52840_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
+west build --pristine -b rak4631 -d build_mcuboot_rak4631_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
 ```
 
 Flash bootloader
 ```
-west flash -d build_mcuboot_rak4631_nrf52840_dfu --softreset -r nrfjprog
+west flash -d build_mcuboot_rak4631_dfu --softreset -r nrfjprog
 ```
 After this point, device has DFU capable bootloader, and during boot stays into this mode for 10sec before try to find valid image:
 
@@ -275,7 +275,7 @@ build dfu capable app for Slot-0 \
 add -DCONFIG_USB_DFU_REBOOT=y to automatically reboot after successfull image upload, or manually reboot device
 ```
 cd helium_mapper
-west build -b rak4631_nrf52840 -s app -- -DCONFIG_USB_DFU_REBOOT=y
+west build -b rak4631 -s app -- -DCONFIG_USB_DFU_REBOOT=y
 west flash --hex-file build/zephyr/zephyr.signed.hex --softreset -r nrfjprog
 ```
 
