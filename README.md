@@ -10,6 +10,14 @@ https://docs.zephyrproject.org/latest/boards/arm/rak4631_nrf52840/doc/index.html
 
 ![RAK4631-NRF52840](doc/img/rak4631-front-parts.jpg)
 
+BOM:
+ * [RAK4631](https://store.rakwireless.com/products/rak4631-lpwan-node) Nordic nRF52840 BLE Core Module for LoRaWAN with LoRa SX1262.
+ * [RAK19003](https://store.rakwireless.com/products/wisblock-base-board-rak19003) WisBlock Mini Base Board.
+ * [RAK1904](https://store.rakwireless.com/products/rak1904-lis3dh-3-axis-acceleration-sensor) 3-Axis Acceleration Sensor STMicroelectronics LIS3DH.
+ * [RAK1910](https://store.rakwireless.com/products/rak1910-max-7q-gnss-location-sensor) GNSS GPS Location Module u-Blox MAX-7Q.
+ * [Battery Connector Cable](https://store.rakwireless.com/products/battery-connector-cable).
+ * Li-Ion battery.
+
 ### Initialization
 
 The first step is to initialize the workspace folder where the
