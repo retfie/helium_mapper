@@ -65,6 +65,80 @@ size_t lorawan_hex2bin(const char *hex, size_t hexlen, uint8_t *buf, size_t bufl
 	return hexlen / 2 + hexlen % 2;
 }
 
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+static void login_init(void)
+{
+	LOG_INF("Welcome to helium mapper");
+	if (!CONFIG_SHELL_CMD_ROOT[0]) {
+		shell_set_root_cmd("login");
+	}
+}
+
+static int check_passwd(char *passwd)
+{
+	char *password = config_get_password();
+	return strcmp(passwd, password);
+}
+
+static int cmd_login(const struct shell *shell, size_t argc, char **argv)
+{
+	static uint32_t attempts;
+
+	if (check_passwd(argv[1]) != 0) {
+		shell_error(shell, "Incorrect password!");
+		attempts++;
+		if (attempts > 3) {
+			k_sleep(K_SECONDS(attempts));
+		}
+		return -EINVAL;
+	}
+
+	/* clear history so password not visible there */
+	z_shell_history_purge(shell->history);
+	shell_obscure_set(shell, false);
+	shell_set_root_cmd(NULL);
+	shell_prompt_change(shell, "uart:~$ ");
+	shell_print(shell, "Welcome to helium mapper\n");
+	shell_print(shell, "Hit tab for help.\n");
+	attempts = 0;
+	return 0;
+}
+
+static int cmd_logout(const struct shell *shell, size_t argc, char **argv)
+{
+	shell_set_root_cmd("login");
+	shell_obscure_set(shell, true);
+	shell_prompt_change(shell, "login: ");
+	shell_print(shell, "\n");
+	return 0;
+}
+
+static int cmd_passwd(const struct shell *shell, size_t argc, char **argv)
+{
+	size_t len = strlen(argv[1]);
+
+	if (argc < 2 || argc > 2)
+	{
+		shell_help(shell);
+		return -EINVAL;
+	}
+
+	if (len < 5 || len > (PASSWORD_MAX_SIZE - 1))
+	{
+		shell_print(shell, "Please choose password between 5 and %d char",
+				PASSWORD_MAX_SIZE - 1);
+		return -EINVAL;
+	}
+
+	config_set_password(argv[1]);
+
+#if IS_ENABLED(CONFIG_SETTINGS)
+	hm_lorawan_nvm_save_settings(argv[0]);
+#endif
+	return 0;
+}
+#endif
+
 static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
@@ -490,6 +564,12 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_lorawan,
 
 SHELL_CMD_REGISTER(lorawan, &sub_lorawan, "lorawan commands", NULL);
 
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+SHELL_CMD_ARG_REGISTER(login, NULL, "<password>", cmd_login, 2, 0);
+SHELL_CMD_REGISTER(logout, NULL, "Log out.", cmd_logout);
+SHELL_CMD_REGISTER(passwd, NULL, "<new password>", cmd_passwd);
+#endif
+
 void dl_shell_cmd_exec(uint8_t len, const uint8_t *data)
 {
 	char cmd_buff[DL_SHELL_CMD_BUF_SIZE];
@@ -530,6 +610,10 @@ int init_shell(void)
 		LOG_ERR("Can't find shell device");
 		return -ENODEV;
 	}
+
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+	login_init();
+#endif
 
 	return 0;
 }

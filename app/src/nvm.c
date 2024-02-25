@@ -39,6 +39,9 @@ static const struct hm_nvm_setting_descr hm_nvm_setting_descriptors[] = {
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	HM_NVM_SETTING_DESCR(payload_key),
 #endif
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+	HM_NVM_SETTING_DESCR(passwd),
+#endif
 };
 
 void hm_lorawan_nvm_save_settings(const char *name)

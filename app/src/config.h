@@ -7,10 +7,13 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include <time.h>
 #include <zephyr/sys/util.h>
 
 #define PAYLOAD_KEY_SIZE 128/8
+#define DEFAULT_PASSWORD "zephyr"
+#define PASSWORD_MAX_SIZE 11
 
 struct s_config
 {
@@ -51,6 +54,9 @@ struct s_config
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	/* AES128 key for encrypting the payload. */
 	uint8_t payload_key[PAYLOAD_KEY_SIZE];
+#endif
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+	char passwd[PASSWORD_MAX_SIZE];
 #endif
 };
 
@@ -122,6 +128,8 @@ uint16_t config_get_max_join_retry_sessions_count(void);
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 uint8_t *config_get_payload_key(void);
 #endif
+char *config_get_password(void);
+void config_set_password(char *password);
 enum init_error_t status_get_boot_status(void);
 void status_set_boot_status(enum init_error_t err_num);
 char const *init_error_to_string(enum init_error_t err_num);

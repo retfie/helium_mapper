@@ -30,6 +30,9 @@ struct s_config config = {
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	.payload_key = {0},
 #endif
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+	.passwd = DEFAULT_PASSWORD,
+#endif
 };
 
 struct s_status lorawan_status = {
@@ -168,6 +171,18 @@ uint16_t config_get_max_join_retry_sessions_count(void)
 uint8_t *config_get_payload_key(void)
 {
 	return config.payload_key;
+}
+#endif
+
+#if IS_ENABLED(CONFIG_SHELL_START_OBSCURED)
+char *config_get_password(void)
+{
+	return config.passwd;
+}
+
+void config_set_password(char *password)
+{
+	strncpy(config.passwd, password, PASSWORD_MAX_SIZE - 1);
 }
 #endif
 
