@@ -14,7 +14,7 @@ target_sources_ifdef(CONFIG_BT              app PRIVATE src/ble.c)
 target_sources_ifdef(CONFIG_UBLOX_MAX7Q     app PRIVATE src/gps.c)
 
 include(${ZEPHYR_BASE}/cmake/hex.cmake)
-file(READ ${PROJECT_BINARY_DIR}/../VERSION ver)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION ver)
 
 string(REGEX MATCH "VERSION_MAJOR = ([0-9]*)" _ ${ver})
 set(APP_VERSION_MAJOR ${CMAKE_MATCH_1})
@@ -27,7 +27,7 @@ if(NOT DEFINED BUILD_VERSION)
   if(GIT_FOUND)
     execute_process(
       COMMAND ${GIT_EXECUTABLE} describe --abbrev=12 --always
-      WORKING_DIRECTORY                ${PROJECT_BINARY_DIR}/../
+      WORKING_DIRECTORY                ${CMAKE_CURRENT_SOURCE_DIR}/../
       OUTPUT_VARIABLE                  BUILD_VERSION
       OUTPUT_STRIP_TRAILING_WHITESPACE
       ERROR_STRIP_TRAILING_WHITESPACE

@@ -7,11 +7,9 @@
 #include <zephyr/init.h>
 #include <hal/nrf_power.h>
 
-static int board_rak4631_nrf52840_init(const struct device *dev)
+static int board_rak4631_init(void)
 {
-       ARG_UNUSED(dev);
-
-       /* if the rak4631_nrf52840 board is powered from USB
+       /* if the rak4631 board is powered from USB
         * (high voltage mode), GPIO output voltage is set to 1.8 volts by
         * default and that is not enough to turn the green and blue LEDs on.
         * Increase GPIO voltage to 3.0 volts.
@@ -42,5 +40,5 @@ static int board_rak4631_nrf52840_init(const struct device *dev)
        return 0;
 }
 
-SYS_INIT(board_rak4631_nrf52840_init, PRE_KERNEL_1,
+SYS_INIT(board_rak4631_init, PRE_KERNEL_1,
         CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);

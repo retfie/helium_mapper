@@ -10,6 +10,14 @@ https://docs.zephyrproject.org/latest/boards/arm/rak4631_nrf52840/doc/index.html
 
 ![RAK4631-NRF52840](doc/img/rak4631-front-parts.jpg)
 
+BOM:
+ * [RAK4631](https://store.rakwireless.com/products/rak4631-lpwan-node) Nordic nRF52840 BLE Core Module for LoRaWAN with LoRa SX1262.
+ * [RAK19003](https://store.rakwireless.com/products/wisblock-base-board-rak19003) WisBlock Mini Base Board.
+ * [RAK1904](https://store.rakwireless.com/products/rak1904-lis3dh-3-axis-acceleration-sensor) 3-Axis Acceleration Sensor STMicroelectronics LIS3DH.
+ * [RAK1910](https://store.rakwireless.com/products/rak1910-max-7q-gnss-location-sensor) GNSS GPS Location Module u-Blox MAX-7Q.
+ * [Battery Connector Cable](https://store.rakwireless.com/products/battery-connector-cable).
+ * Li-Ion battery.
+
 ### Initialization
 
 The first step is to initialize the workspace folder where the
@@ -29,7 +37,7 @@ west update
 The application can be built by running:
 
 ```shell
-west build -p -b rak4631_nrf52840 -s app
+west build -p -b rak4631 -s app
 ```
 
 Once you have built the application you can flash it by running:
@@ -241,12 +249,12 @@ west update
 
 Build MCUboot loader with RTT support
 ```
-west build --pristine -b rak4631_nrf52840 -d build_mcuboot_rak4631_nrf52840_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
+west build --pristine -b rak4631 -d build_mcuboot_rak4631_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
 ```
 
 Flash bootloader
 ```
-west flash -d build_mcuboot_rak4631_nrf52840_dfu --softreset -r nrfjprog
+west flash -d build_mcuboot_rak4631_dfu --softreset -r nrfjprog
 ```
 After this point, device has DFU capable bootloader, and during boot stays into this mode for 10sec before try to find valid image:
 
@@ -267,7 +275,7 @@ build dfu capable app for Slot-0 \
 add -DCONFIG_USB_DFU_REBOOT=y to automatically reboot after successfull image upload, or manually reboot device
 ```
 cd helium_mapper
-west build -b rak4631_nrf52840 -s app -- -DCONFIG_USB_DFU_REBOOT=y
+west build -b rak4631 -s app -- -DCONFIG_USB_DFU_REBOOT=y
 west flash --hex-file build/zephyr/zephyr.signed.hex --softreset -r nrfjprog
 ```
 

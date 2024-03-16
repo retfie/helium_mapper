@@ -8,6 +8,11 @@
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
 		zephyr,shell-uart = &cdc_acm_uart0;
+		/delete-property/ zephyr,uart-mcumgr;
+
+		/* uart1 is used by GPS. */
+		/delete-property/ zephyr,bt-mon-uart;
+		/delete-property/ zephyr,bt-c2h-uart;
 	};
 
 	aliases {

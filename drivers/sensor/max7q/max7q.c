@@ -60,16 +60,6 @@ struct max7q_config {
 #endif
 };
 
-/** @brief GPS UART configuration. */
-static const struct uart_config uart_config = {
-	//.baudrate = 9600U,
-	.baudrate = DT_PROP(DT_BUS(DT_ALIAS(gps0)), current_speed),
-	.data_bits = UART_CFG_DATA_BITS_8,
-	.flow_ctrl = UART_CFG_FLOW_CTRL_NONE,
-	.parity = UART_CFG_PARITY_NONE,
-	.stop_bits = UART_CFG_STOP_BITS_1,
-};
-
 static void decode_nmea_handler(struct max7q_data *data)
 {
 	char *line = data->buf;
@@ -453,16 +443,13 @@ static int max7q_init(const struct device *dev)
 	struct max7q_data *data = dev->data;
 	int ret;
 
-	/* configure UART */
+	/* No need to call uart_configure. UART uses 8N1
+	 * format by default. The baudrate is set by
+	 * the DTS.
+	 */
 	if (!device_is_ready(config->uart)) {
 		LOG_ERR("UART not ready");
 		return -ENODEV;
-	}
-
-	ret = uart_configure(config->uart, &uart_config);
-	if (ret < 0) {
-		LOG_ERR("UART config err: %d", ret);
-		return ret;
 	}
 
 	uart_irq_callback_user_data_set(config->uart, uart_cb_handler,

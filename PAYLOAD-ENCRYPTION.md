@@ -13,7 +13,7 @@ not be protected by that AES128 key. The latter is only for the payload.
 
 Simply enable the PAYLOAD_ENCRYPTION config. Example:
 ```
-west build --pristine  -b rak4631_nrf52840 -s app -- -DCONFIG_USB_DFU_REBOOT=y -DCONFIG_BT=n -DCONFIG_PAYLOAD_ENCRYPTION=y
+west build --pristine  -b rak4631 -s app -- -DCONFIG_USB_DFU_REBOOT=y -DCONFIG_BT=n -DCONFIG_PAYLOAD_ENCRYPTION=y
 ```
 
 ## Enabling encryption

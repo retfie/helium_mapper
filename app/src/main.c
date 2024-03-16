@@ -95,7 +95,7 @@ struct s_status lorawan_status = {
 
 struct s_mapper_data mapper_data;
 
-#define LORA_JOIN_THREAD_STACK_SIZE 1500
+#define LORA_JOIN_THREAD_STACK_SIZE 2048
 #define LORA_JOIN_THREAD_PRIORITY 10
 K_KERNEL_STACK_MEMBER(lora_join_thread_stack, LORA_JOIN_THREAD_STACK_SIZE);
 
@@ -579,6 +579,7 @@ int join_lora(struct s_helium_mapper_ctx *ctx) {
 	join_cfg.otaa.join_eui = lorawan_config.app_eui;
 	join_cfg.otaa.app_key = lorawan_config.app_key;
 	join_cfg.otaa.nwk_key = lorawan_config.app_key;
+	join_cfg.otaa.dev_nonce = 0u;
 
 	if (lorawan_config.auto_join) {
 		while (retry--) {
@@ -939,7 +940,7 @@ int init_usb_console(void)
 }
 #endif
 
-void main(void)
+int main(void)
 {
 	struct s_helium_mapper_ctx *ctx = &g_ctx;
 	struct app_evt_t *ev;
@@ -947,7 +948,7 @@ void main(void)
 
 	ret = init_leds();
 	if (ret) {
-		return;
+		return 1;
 	}
 
 #if IS_ENABLED(CONFIG_SETTINGS)
@@ -967,11 +968,13 @@ void main(void)
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	ret = init_gps();
 	if (ret) {
+		LOG_ERR("init_gps failed");
 		goto fail;
 	}
 
 	ret = gps_set_trigger_handler(gps_trigger_handler);
 	if (ret) {
+		LOG_ERR("gps_set_trigger_handler  failed");
 		goto fail;
 	}
 #endif
@@ -1005,18 +1008,18 @@ void main(void)
 	ctx->entropy_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_entropy));
 	if (!device_is_ready(ctx->entropy_dev)) {
 		LOG_ERR("ENTROPY: random device not ready!");
-		return;
+		return 1;
 	}
 	ret = entropy_get_entropy(ctx->entropy_dev, &entropy[0], sizeof(entropy));
 	if (ret) {
 		LOG_ERR("ENTROPY: failed to obtain entropy.");
-		return;
+		return 1;
 	}
 
 	ret = tc_ctr_prng_init(&ctx->prng, &entropy[0], sizeof(entropy), 0, 0U);
 	if (ret != TC_CRYPTO_SUCCESS) {
 		LOG_ERR("PRNG init error.");
-		return;
+		return 1;
 	}
 #endif
 
@@ -1048,4 +1051,5 @@ fail:
 		}
 		k_sleep(K_SECONDS(1));
 	}
+	return 0;
 }
