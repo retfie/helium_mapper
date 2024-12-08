@@ -1,0 +1,88 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/lora/sx126x.h>
+
+/ {
+	chosen {
+	};
+
+	aliases {
+		green-led = &led1;
+		blue-led = &led2;
+		accel0 = &lis3dh;
+		gps0 = &max7q;
+		lora0 = &lora;
+	};
+
+	vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&adc 3>;
+		io-channel-names = "BATTERY";
+		output-ohms = <1500000>;
+		full-ohms = <(1000000 + 1500000)>;
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@3 {
+		reg = <3>;
+		zephyr,gain = "ADC_GAIN_1_5";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN3>;
+		zephyr,resolution = <14>;
+		zephyr,oversampling = <8>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+
+	/* ST Microelectronics LIS3DH motion sensor */
+	lis3dh: lis3dh@18 {
+		compatible = "st,lis3dh", "st,lis2dh";
+		reg = <0x18>;
+		irq-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+		anym-on-int1;
+	};
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <9600>;
+
+	max7q: max7q {
+		compatible = "u-blox,max7q";
+		status = "okay";
+		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&spi1 {
+	compatible = "nordic,nrf-spi";
+	status = "okay";
+	cs-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+
+	pinctrl-0 = <&spi1_default>;
+	pinctrl-1 = <&spi1_sleep>;
+	pinctrl-names = "default", "sleep";
+	lora: lora@0 {
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;
+		tx-enable-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
+		rx-enable-gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+		dio1-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_3V3>;
+		tcxo-power-startup-delay-ms = <5>;
+		spi-max-frequency = <1000000>;
+	};
+};
