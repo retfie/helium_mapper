@@ -18,7 +18,6 @@ target_sources_ifdef(CONFIG_SHELL           app PRIVATE src/shell.c)
 target_sources_ifdef(CONFIG_BT              app PRIVATE src/ble.c)
 target_sources_ifdef(CONFIG_UBLOX_MAX7Q     app PRIVATE src/gps.c)
 
-include(${ZEPHYR_BASE}/cmake/hex.cmake)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION ver)
 
 string(REGEX MATCH "VERSION_MAJOR = ([0-9]*)" _ ${ver})
