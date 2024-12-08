@@ -24,12 +24,21 @@ The first step is to initialize the workspace folder where the
 `helium_mapper` and needed Zephyr modules will be cloned. You can do
 that by running:
 
+
+To avoid issues with system wide python versions, it's better to prepare Virtual Env
+```shell
+python3 -m venv venv
+. venv/bin/activate
+pip3 install west
+```
+
 ```shell
 # initialize workspace for the helium_mapper (main branch)
 west init -m https://github.com/retfie/helium_mapper --mr main helium_mapper_project
 # update Zephyr modules
 cd helium_mapper_project/helium_mapper
 west update
+. ../zephyr/zephyr-env.sh
 ```
 
 ### Build & Run
@@ -37,7 +46,9 @@ west update
 The application can be built by running:
 
 ```shell
-west build -p -b rak4631 -s app
+. venv/bin/activate
+. ../zephyr/zephyr-env.sh
+west build -p -b rak4631 --sysbuild -s app
 ```
 
 Once you have built the application you can flash it by running:
