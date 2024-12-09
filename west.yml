@@ -1,4 +1,3 @@
-# Copyright (c) 2021 Nordic Semiconductor ASA
 # SPDX-License-Identifier: Apache-2.0
 
 manifest:
@@ -11,24 +10,42 @@ manifest:
   remotes:
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
-    - name: retfie
-      url-base: https://github.com/retfie
 
   projects:
     - name: zephyr
       remote: upstream
-      revision: main
+      revision: v4.0.0
       import:
         name-allowlist:
           - cmsis
-          - hal_nordic
-          - segger
-          - tinycrypt
-          - loramac-node
-          - mbedtls
+    - name: hal_nordic
+      revision: 5c8d109371ebb740fbef1f440a3b59e488a36717
+      path: modules/hal/nordic
+      groups:
+        - hal
+    - name: loramac-node
+      revision: fb00b383072518c918e2258b0916c996f2d4eebe
+      path: modules/lib/loramac-node
+    - name: mbedtls
+      revision: a78176c6ff0733ba08018cba4447bd3f20de7978
+      path: modules/crypto/mbedtls
+      groups:
+        - crypto
     - name: mcuboot
-      revision: main
+      revision: f74b77cf7808919837c0ed14c2ead3918c546349
       path: bootloader/mcuboot
+      groups:
+        - bootloader
+    - name: segger
+      revision: 798f95ea9304e5ed8165a661081443051f210733
+      path: modules/debug/segger
+      groups:
+        - debug
+    - name: tinycrypt
+      revision: 1012a3ebee18c15ede5efc8332ee2fc37817670f
+      path: modules/crypto/tinycrypt
+      groups:
+        - crypto
     - name: zcbor
-      revision: 0.6.0
+      revision: 47f34dd7f5284e8750b5a715dee7f77c6c5bdc3f
       path: modules/lib/zcbor
