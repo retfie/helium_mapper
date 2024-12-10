@@ -20,7 +20,9 @@
 #include <zephyr/drivers/uart.h>
 
 #include "lorawan_config.h"
+#if IS_ENABLED(CONFIG_BATTERY)
 #include "battery.h"
+#endif
 #include "nvm.h"
 #include "gps.h"
 #if IS_ENABLED(CONFIG_SHELL)
@@ -788,7 +790,7 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 
 	mapper_data.fix = ctx->gps_fix ? 1 : 0;
 
-#if IS_ENABLED(CONFIG_ADC)
+#if IS_ENABLED(CONFIG_BATTERY)
 	int batt_mV;
 	err = read_battery(&batt_mV);
 	if (err == 0) {

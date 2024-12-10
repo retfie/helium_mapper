@@ -5,6 +5,7 @@
 # as the module Kconfig entry point (see zephyr/module.yml). You can browse
 # module options by going to Zephyr -> Modules in Kconfig.
 
+rsource "app/Kconfig.battery"
 rsource "app/Kconfig.payload_enc"
 rsource "drivers/Kconfig"
 rsource "subsys/bluetooth/services/Kconfig.nus"
