@@ -12,7 +12,7 @@ test_sysbuild()
 
 target_sources(                     app PRIVATE src/main.c)
 target_sources(                     app PRIVATE boards/board.c)
-target_sources_ifdef(CONFIG_ADC             app PRIVATE src/battery.c)
+target_sources_ifdef(CONFIG_BATTERY         app PRIVATE src/battery.c)
 target_sources_ifdef(CONFIG_SETTINGS        app PRIVATE src/nvm.c)
 target_sources_ifdef(CONFIG_SHELL           app PRIVATE src/shell.c)
 target_sources_ifdef(CONFIG_BT              app PRIVATE src/ble.c)

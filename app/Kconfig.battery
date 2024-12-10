@@ -1,0 +1,9 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config BATTERY
+	bool "Enable battery voltage measure via ADC and R divider"
+	select ADC
+	help
+	  Build support for battery voltage measure via ADC and R divider

@@ -157,6 +157,7 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 }
 SHELL_CMD_ARG_REGISTER(status, NULL, "Show helium_mapper status", cmd_status, 1, 0);
 
+#if IS_ENABLED(CONFIG_BATTERY)
 static int cmd_battery(const struct shell *shell, size_t argc, char **argv)
 {
 	uint16_t batt_pptt;
@@ -177,6 +178,7 @@ static int cmd_battery(const struct shell *shell, size_t argc, char **argv)
 	return 0;
 }
 SHELL_CMD_ARG_REGISTER(battery, NULL, "Show battery status", cmd_battery, 1, 0);
+#endif
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 static int cmd_location(const struct shell *shell, size_t argc, char **argv)
