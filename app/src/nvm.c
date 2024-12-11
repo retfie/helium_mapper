@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <zephyr/settings/settings.h>
 
-#include "lorawan_config.h"
+#include "config.h"
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>

@@ -8,7 +8,7 @@
 
 #include <zephyr/drivers/sensor.h>
 
-#include "lorawan_config.h"
+#include "config.h"
 
 enum gps_power_mode_t {
 	GPS_DISABLE = 0,
