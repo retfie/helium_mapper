@@ -14,7 +14,7 @@
 #include <zephyr/sys/timeutil.h>
 #include <zephyr/lorawan/lorawan.h>
 
-#include "lorawan_config.h"
+#include "config.h"
 #include "battery.h"
 #include "nvm.h"
 #include "gps.h"

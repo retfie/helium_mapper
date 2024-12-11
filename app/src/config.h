@@ -1,9 +1,9 @@
 /*
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef __LORAWAN_CONFIG_H__
-#define __LORAWAN_CONFIG_H__
+#ifndef _APP_CONFIG_H_
+#define _APP_CONFIG_H_
 
 #include <stdio.h>
 #include <zephyr/lorawan/lorawan.h>
@@ -50,6 +50,7 @@ struct s_lorawan_config
 #endif
 };
 
+//TODO to remove and replace with methods !!!
 extern struct s_lorawan_config lorawan_config;
 
 struct s_mapper_data
@@ -80,4 +81,17 @@ struct s_status {
 
 extern struct s_status lorawan_status;
 
-#endif /* __LORAWAN_CONFIG_H__ */
+uint32_t config_get_max_gps_on_time(void);
+uint32_t config_get_send_repeat_time(void);
+uint32_t config_get_send_min_delay(void);
+bool status_is_joined(void);
+void status_set_joined(bool state);
+bool status_get_delayed_active(void);
+void status_set_delayed_active(bool state);
+uint32_t status_get_acc_events(void);
+void status_inc_acc_events(void);
+time_t status_get_last_accel_event(void);
+void status_set_last_accel_event(time_t last_accel_time);
+time_t status_get_last_pos_send(void);
+
+#endif /* _APP_CONFIG_H_ */
