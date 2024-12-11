@@ -431,6 +431,7 @@ static void trigger_handler(const struct device *dev,
 }
 #endif
 
+#if IS_ENABLED(CONFIG_SENSOR)
 int init_accel(struct s_helium_mapper_ctx *ctx)
 {
 	const struct device *accel_dev;
@@ -506,6 +507,7 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 #endif
 	return err;
 }
+#endif
 
 static const char *lorawan_state_str(enum lorawan_state_e state)
 {
@@ -964,10 +966,12 @@ int main(void)
 
 	init_timers(ctx);
 
+#if IS_ENABLED(CONFIG_SENSOR)
 	ret = init_accel(ctx);
 	if (ret) {
 		goto fail;
 	}
+#endif
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	ret = init_gps();
