@@ -946,6 +946,8 @@ int main(void)
 	struct app_evt_t *ev;
 	int ret;
 
+	LOG_INF("Main start");
+
 	ret = init_leds();
 	if (ret) {
 		return 1;
