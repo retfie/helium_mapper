@@ -334,6 +334,7 @@ void led_enable(const struct gpio_dt_spec *led, int enable) {
 	}
 }
 
+#if IS_ENABLED(CONFIG_LORA)
 static void dl_callback(uint8_t port, bool data_pending,
 			int16_t rssi, int8_t snr,
 			uint8_t len, const uint8_t *data)
@@ -359,6 +360,7 @@ static void lorwan_datarate_changed(enum lorawan_datarate dr)
 	lorawan_get_payload_sizes(&unused, &max_size);
 	LOG_INF("New Datarate: DR_%d, Max Payload %d", dr, max_size);
 }
+#endif // CONFIG_LORA
 
 static const enum sensor_channel channels[] = {
 	SENSOR_CHAN_ACCEL_X,
@@ -509,6 +511,7 @@ int init_accel(struct s_helium_mapper_ctx *ctx)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_LORA)
 static const char *lorawan_state_str(enum lorawan_state_e state)
 {
 	switch(state) {
@@ -660,13 +663,16 @@ int init_lora(struct s_helium_mapper_ctx *ctx) {
 
 	return 0;
 }
+#endif // CONFIG_LORA
 
 void init_timers(struct s_helium_mapper_ctx *ctx)
 {
 	k_timer_init(&ctx->send_timer, send_timer_handler, NULL);
 	k_timer_init(&ctx->delayed_timer, delayed_timer_handler, NULL);
 	k_timer_init(&ctx->gps_off_timer, gps_off_timer_handler, NULL);
+#if IS_ENABLED(CONFIG_LORA)
 	k_timer_init(&ctx->lora_join_timer, lora_join_timer_handler, NULL);
+#endif
 
 	update_send_timer(ctx);
 }
@@ -772,6 +778,7 @@ static int encrypt_payload(struct s_helium_mapper_ctx *ctx)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_LORA)
 void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 {
 	int64_t last_pos_send_ok_sec;
@@ -863,6 +870,7 @@ void lora_send_msg(struct s_helium_mapper_ctx *ctx)
 		lorawan_state(ctx, NOT_JOINED);
 	}
 }
+#endif // CONFIG_LORA
 
 #if IS_ENABLED(CONFIG_SHELL)
 void shell_cb(enum shell_cmd_event event, void *data) {
@@ -914,15 +922,19 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 		   GPS ON Interval, send lora message with other telemetry
 		   data and old position data if available.
 		*/
+#if IS_ENABLED(CONFIG_LORA)
 		if (!ctx->gps_fix) {
 			lora_send_msg(ctx);
 		}
+#endif
 		break;
 
 	case EV_GPS_FIX:
 		LOG_INF("Event GPS_FIX");
 		ctx->gps_fix = true;
+#if IS_ENABLED(CONFIG_LORA)
 		lora_send_msg(ctx);
+#endif
 		break;
 
 	default:
@@ -1031,6 +1043,7 @@ int main(void)
 	}
 #endif
 
+#if IS_ENABLED(CONFIG_LORA)
 	ret = init_lora(ctx);
 	if (ret) {
 		LOG_ERR("Rebooting in 30 sec.");
@@ -1038,6 +1051,7 @@ int main(void)
 		sys_reboot(SYS_REBOOT_WARM);
 		goto fail;
 	}
+#endif
 
 	while (true) {
 		LOG_INF("Waiting for events...");
