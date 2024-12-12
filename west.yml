@@ -10,11 +10,13 @@ manifest:
   remotes:
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
+    - name: retfie
+      url-base: https://github.com/retfie
 
   projects:
     - name: zephyr
-      remote: upstream
-      revision: 2ed8790e8b4c5cbf0ef52124bc94b41da9f78fe3
+      remote: retfie
+      revision: v4.0.0-SX126xWaitOnBusy_int
       import:
         name-allowlist:
           - cmsis
@@ -24,7 +26,8 @@ manifest:
       groups:
         - hal
     - name: loramac-node
-      revision: fb00b383072518c918e2258b0916c996f2d4eebe
+      remote: retfie
+      revision: v4.7.0-zephyr-SX126xWaitOnBusy_int
       path: modules/lib/loramac-node
     - name: mbedtls
       revision: a78176c6ff0733ba08018cba4447bd3f20de7978
