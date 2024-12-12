@@ -14,7 +14,7 @@ manifest:
   projects:
     - name: zephyr
       remote: upstream
-      revision: v4.0.0
+      revision: 2ed8790e8b4c5cbf0ef52124bc94b41da9f78fe3
       import:
         name-allowlist:
           - cmsis
