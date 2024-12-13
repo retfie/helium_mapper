@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr/dt-bindings/lora/sx126x.h>
+
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
@@ -20,6 +22,7 @@
 		blue-led = &blue_led;
 		accel0 = &lis3dh;
 		gps0 = &max7q;
+		lora0 = &lora;
 	};
 
 	vbatt {
