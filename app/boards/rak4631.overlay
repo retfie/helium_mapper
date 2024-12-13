@@ -31,6 +31,10 @@
 	};
 };
 
+&uicr {
+	nfct-pins-as-gpios;
+};
+
 &adc {
 	#address-cells = <1>;
 	#size-cells = <0>;
