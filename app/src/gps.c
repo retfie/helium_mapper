@@ -9,6 +9,7 @@
 
 #include <app/drivers/sensor/location.h>
 
+#include "config.h"
 #include "gps.h"
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
@@ -74,6 +75,7 @@ void read_location(struct s_mapper_data *mapper_data)
 int gps_enable(int enable)
 {
 	struct sensor_value attr = { 0, 0 };
+	uint64_t gps_total_on_time = status_get_gps_total_on_time();
 	enum sensor_channel chan;
 	int64_t delta;
 	int err;
@@ -93,14 +95,15 @@ int gps_enable(int enable)
 	/* Save GPS ON time */
 	if (enable == GPS_ENABLE) {
 		gps_on_time = k_uptime_get();
-		lorawan_status.gps_pwr_on = true;
+		status_set_gps_pwr_on(true);
 	}
 	if (enable == GPS_DISABLE) {
-		lorawan_status.gps_pwr_on = false;
+		status_set_gps_pwr_on(false);
 		delta = k_uptime_delta(&gps_on_time);
-		lorawan_status.gps_total_on_time += (delta / 1000);
+		gps_total_on_time += (delta / 1000);
+		status_set_gps_total_on_time(gps_total_on_time);
 		LOG_INF("GPS was ON for %lld sec, total: %lld sec",
-			delta / 1000, lorawan_status.gps_total_on_time);
+			delta / 1000, gps_total_on_time);
 	}
 
 	attr.val1 = enable;
