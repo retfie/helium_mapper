@@ -4,7 +4,7 @@
 
 #include "config.h"
 
-struct s_lorawan_config lorawan_config = {
+struct s_config config = {
 	.dev_eui = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 },
 	.app_eui = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 },
 	.app_key = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F },
@@ -47,17 +47,17 @@ struct s_status lorawan_status = {
 
 uint32_t config_get_max_gps_on_time(void)
 {
-	return lorawan_config.max_gps_on_time;
+	return config.max_gps_on_time;
 }
 
 uint32_t config_get_send_repeat_time(void)
 {
-	return lorawan_config.send_repeat_time;
+	return config.send_repeat_time;
 }
 
 uint32_t config_get_send_min_delay(void)
 {
-	return lorawan_config.send_min_delay;
+	return config.send_min_delay;
 }
 
 bool status_is_joined(void)

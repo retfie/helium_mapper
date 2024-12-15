@@ -76,36 +76,36 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "    App ver:       %s", STRINGIFY(APP_BUILD_VERSION));
 
 	shell_fprintf(shell, SHELL_NORMAL, "  Dev EUI          ");
-	for (i = 0; i < sizeof(lorawan_config.dev_eui); i++) {
-		shell_fprintf(shell, SHELL_NORMAL, "%02X", lorawan_config.dev_eui[i] & 0xFF);
+	for (i = 0; i < sizeof(config.dev_eui); i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", config.dev_eui[i] & 0xFF);
 	}
 	shell_print(shell, "");
 
 	shell_fprintf(shell, SHELL_NORMAL, "  APP EUI          ");
-	for (i = 0; i < sizeof(lorawan_config.app_eui); i++) {
-		shell_fprintf(shell, SHELL_NORMAL, "%02X", lorawan_config.app_eui[i] & 0xFF);
+	for (i = 0; i < sizeof(config.app_eui); i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", config.app_eui[i] & 0xFF);
 	}
 	shell_print(shell, "");
 
 	shell_fprintf(shell, SHELL_NORMAL, "  APP key          ");
-	for (i = 0; i < sizeof(lorawan_config.app_key); i++) {
-		shell_fprintf(shell, SHELL_NORMAL, "%02X", lorawan_config.app_key[i] & 0xFF);
+	for (i = 0; i < sizeof(config.app_key); i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", config.app_key[i] & 0xFF);
 	}
 	shell_print(shell, "");
 
-	shell_print(shell, "  Auto join        %s", lorawan_config.auto_join ? "true" : "false");
-	shell_print(shell, "  Data rate/DR+    %d", lorawan_config.data_rate);
-	shell_print(shell, "  Confirmed msgs   %s", lorawan_config.confirmed_msg ? "true" : "false");
-	shell_print(shell, "  Max failed msgs  %d", lorawan_config.max_failed_msg);
-	shell_print(shell, "  Inactive window  %d sec", lorawan_config.max_inactive_time_window);
-	shell_print(shell, "  Send interval    %d sec", lorawan_config.send_repeat_time);
-	shell_print(shell, "  Min delay        %d sec", lorawan_config.send_min_delay);
-	shell_print(shell, "  Max GPS ON time  %d sec", lorawan_config.max_gps_on_time);
+	shell_print(shell, "  Auto join        %s", config.auto_join ? "true" : "false");
+	shell_print(shell, "  Data rate/DR+    %d", config.data_rate);
+	shell_print(shell, "  Confirmed msgs   %s", config.confirmed_msg ? "true" : "false");
+	shell_print(shell, "  Max failed msgs  %d", config.max_failed_msg);
+	shell_print(shell, "  Inactive window  %d sec", config.max_inactive_time_window);
+	shell_print(shell, "  Send interval    %d sec", config.send_repeat_time);
+	shell_print(shell, "  Min delay        %d sec", config.send_min_delay);
+	shell_print(shell, "  Max GPS ON time  %d sec", config.max_gps_on_time);
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	shell_fprintf(shell, SHELL_NORMAL, "  Payload key      ");
-	for (i = 0; i < sizeof(lorawan_config.payload_key); i++) {
-		shell_fprintf(shell, SHELL_NORMAL, "%02X", lorawan_config.payload_key[i] & 0xFF);
+	for (i = 0; i < sizeof(config.payload_key); i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", config.payload_key[i] & 0xFF);
 	}
 	shell_print(shell, "");
 #endif
@@ -259,21 +259,21 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 
 	if (argc < 2) {
 		if (!strncmp(argv[0], "dev_eui", strlen("dev_eui"))) {
-			shell_lorawan_hexdump(shell, lorawan_config.dev_eui,
-					sizeof(lorawan_config.dev_eui), "dev_eui ");
+			shell_lorawan_hexdump(shell, config.dev_eui,
+					sizeof(config.dev_eui), "dev_eui ");
 		}
 		else if (!strncmp(argv[0], "app_eui", strlen("app_eui"))) {
-			shell_lorawan_hexdump(shell, lorawan_config.app_eui,
-					sizeof(lorawan_config.app_eui), "app_eui ");
+			shell_lorawan_hexdump(shell, config.app_eui,
+					sizeof(config.app_eui), "app_eui ");
 		}
 		else if (!strncmp(argv[0], "app_key", strlen("app_key"))) {
-			shell_lorawan_hexdump(shell, lorawan_config.app_key,
-					sizeof(lorawan_config.app_key), "app_key ");
+			shell_lorawan_hexdump(shell, config.app_key,
+					sizeof(config.app_key), "app_key ");
 		}
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 		else if (!strncmp(argv[0], "payload_key", strlen("payload_key"))) {
-			shell_lorawan_hexdump(shell, lorawan_config.payload_key,
-					sizeof(lorawan_config.payload_key), "payload_key ");
+			shell_lorawan_hexdump(shell, config.payload_key,
+					sizeof(config.payload_key), "payload_key ");
 		}
 #endif
 	} else {
@@ -284,7 +284,7 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 				return -EINVAL;
 			}
 			LOG_HEXDUMP_DBG(buf, len, "dev_eui: ");
-			memcpy(lorawan_config.dev_eui, buf, 8);
+			memcpy(config.dev_eui, buf, 8);
 			save = true;
 		}
 		else if (!strncmp(argv[0], "app_eui", strlen("app_eui"))) {
@@ -294,7 +294,7 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 				return -EINVAL;
 			}
 			LOG_HEXDUMP_DBG(buf, len, "app_eui: ");
-			memcpy(lorawan_config.app_eui, buf, 8);
+			memcpy(config.app_eui, buf, 8);
 			save = true;
 		}
 		else if (!strncmp(argv[0], "app_key", strlen("app_key"))) {
@@ -304,7 +304,7 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 				return -EINVAL;
 			}
 			LOG_HEXDUMP_DBG(buf, len, "app_key: ");
-			memcpy(lorawan_config.app_key, buf, 16);
+			memcpy(config.app_key, buf, 16);
 			save = true;
 		}
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
@@ -315,7 +315,7 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 				return -EINVAL;
 			}
 			LOG_HEXDUMP_DBG(buf, len, "payload_key: ");
-			memcpy(lorawan_config.payload_key, buf, 16);
+			memcpy(config.payload_key, buf, 16);
 			save = true;
 		}
 #endif
@@ -335,14 +335,14 @@ static int cmd_auto_join(const struct shell *shell, size_t argc, char **argv)
 	bool save = false;
 
 	if (argc < 2) {
-		shell_print(shell, "%s", lorawan_config.auto_join ? "true" : "false");
+		shell_print(shell, "%s", config.auto_join ? "true" : "false");
 	} else {
 		if (!strncmp(argv[1], "true", strlen("true"))) {
-			lorawan_config.auto_join = true;
+			config.auto_join = true;
 			save = true;
 		}
 		if (!strncmp(argv[1], "false", strlen("false"))) {
-			lorawan_config.auto_join = false;
+			config.auto_join = false;
 			save = true;
 		}
 
@@ -363,14 +363,14 @@ static int cmd_confirmed_msg(const struct shell *shell, size_t argc, char **argv
 	bool save = false;
 
 	if (argc < 2) {
-		shell_print(shell, "%s", lorawan_config.confirmed_msg ? "true" : "false");
+		shell_print(shell, "%s", config.confirmed_msg ? "true" : "false");
 	} else {
 		if (!strncmp(argv[1], "true", strlen("true"))) {
-			lorawan_config.confirmed_msg = LORAWAN_MSG_CONFIRMED;
+			config.confirmed_msg = LORAWAN_MSG_CONFIRMED;
 			save = true;
 		}
 		if (!strncmp(argv[1], "false", strlen("false"))) {
-			lorawan_config.confirmed_msg = LORAWAN_MSG_UNCONFIRMED;
+			config.confirmed_msg = LORAWAN_MSG_UNCONFIRMED;
 			save = true;
 		}
 #if IS_ENABLED(CONFIG_SETTINGS)
@@ -386,12 +386,12 @@ static int cmd_confirmed_msg(const struct shell *shell, size_t argc, char **argv
 static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", lorawan_config.send_repeat_time);
+		shell_print(shell, "%u sec", config.send_repeat_time);
 		if (shell_ctx.shell_cb) {
 			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER_GET, shell_ctx.data);
 		}
 	} else {
-		lorawan_config.send_repeat_time = atoi(argv[1]);
+		config.send_repeat_time = atoi(argv[1]);
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_repeat_time");
 #endif
@@ -406,9 +406,9 @@ static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv
 static int cmd_min_delay(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", lorawan_config.send_min_delay);
+		shell_print(shell, "%u sec", config.send_min_delay);
 	} else {
-		lorawan_config.send_min_delay = atoi(argv[1]);
+		config.send_min_delay = atoi(argv[1]);
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_min_delay");
 #endif
@@ -420,9 +420,9 @@ static int cmd_min_delay(const struct shell *shell, size_t argc, char **argv)
 static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", lorawan_config.max_gps_on_time);
+		shell_print(shell, "%u sec", config.max_gps_on_time);
 	} else {
-		lorawan_config.max_gps_on_time = atoi(argv[1]);
+		config.max_gps_on_time = atoi(argv[1]);
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("max_gps_on_time");
 #endif
@@ -436,13 +436,13 @@ static int cmd_data_rate(const struct shell *shell, size_t argc, char **argv)
 	int rate;
 
 	if (argc < 2) {
-		shell_print(shell, "%d", lorawan_config.data_rate);
+		shell_print(shell, "%d", config.data_rate);
 	} else {
 		rate = atoi(argv[1]);
 		if (rate > LORAWAN_DR_15 || rate < LORAWAN_DR_0) {
 			return -EINVAL;
 		}
-		lorawan_config.data_rate = rate;
+		config.data_rate = rate;
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("data_rate");
 #endif

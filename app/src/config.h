@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <zephyr/lorawan/lorawan.h>
 
-struct s_lorawan_config
+struct s_config
 {
 	/* OTAA Device EUI MSB */
 	char dev_eui[8];
@@ -51,7 +51,7 @@ struct s_lorawan_config
 };
 
 //TODO to remove and replace with methods !!!
-extern struct s_lorawan_config lorawan_config;
+extern struct s_config config;
 
 struct s_mapper_data
 {
