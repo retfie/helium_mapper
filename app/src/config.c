@@ -47,6 +47,46 @@ struct s_status lorawan_status = {
 	.join_retry_sessions_count = 0,
 };
 
+bool config_get_auto_join(void)
+{
+	return config.auto_join;
+}
+
+uint8_t *config_get_dev_eui(void)
+{
+	return config.dev_eui;
+}
+
+uint8_t *config_get_app_eui(void)
+{
+	return config.app_eui;
+}
+
+uint8_t *config_get_app_key(void)
+{
+	return config.app_key;
+}
+
+void config_set_auto_join(bool state)
+{
+	config.auto_join = state;
+}
+
+uint32_t config_get_join_try_interval(void)
+{
+	return config.join_try_interval;
+}
+
+uint8_t config_get_join_try_count(void)
+{
+	return config.join_try_count;
+}
+
+uint8_t config_get_lora_mode(void)
+{
+	return config.lora_mode;
+}
+
 uint32_t config_get_max_gps_on_time(void)
 {
 	return config.max_gps_on_time;

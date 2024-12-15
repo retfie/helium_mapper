@@ -74,7 +74,7 @@ static const char *lorawan_state_str(enum lorawan_state_e state)
 
 void lorawan_state(enum lorawan_state_e state)
 {
-	uint32_t join_try_interval_sec = config.join_try_interval;
+	uint32_t join_try_interval_sec = config_get_join_try_interval();
 
 	LOG_INF("LoraWAN state set to: %s", lorawan_state_str(state));
 
@@ -84,7 +84,7 @@ void lorawan_state(enum lorawan_state_e state)
 		// TODO
 		//led_enable(&led_green, 0);
 
-		if (!config.auto_join) {
+		if (!config_get_auto_join()) {
 			LOG_WRN("Join is not enabled");
 			break;
 		}
@@ -125,20 +125,21 @@ static void lora_join_timer_handler(struct k_timer *timer)
 
 int join_lora(void) {
 	struct lorawan_join_config join_cfg;
-	int retry = config.join_try_count;
+	int join_try_count = config_get_join_try_count();
+	int retry = join_try_count;
 	int ret = 0;
 
-	join_cfg.mode = config.lora_mode;
-	join_cfg.dev_eui = config.dev_eui;
-	join_cfg.otaa.join_eui = config.app_eui;
-	join_cfg.otaa.app_key = config.app_key;
-	join_cfg.otaa.nwk_key = config.app_key;
+	join_cfg.mode = config_get_lora_mode();
+	join_cfg.dev_eui = config_get_dev_eui();
+	join_cfg.otaa.join_eui = config_get_app_eui();
+	join_cfg.otaa.app_key = config_get_app_key();
+	join_cfg.otaa.nwk_key = config_get_app_key();
 	join_cfg.otaa.dev_nonce = 0u;
 
-	if (config.auto_join) {
+	if (config_get_auto_join()) {
 		while (retry--) {
 			LOG_INF("Joining network over OTAA. Attempt: %d",
-					config.join_try_count - retry);
+					join_try_count - retry);
 			ret = lorawan_join(&join_cfg);
 			if (ret == 0) {
 				break;

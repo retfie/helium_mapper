@@ -82,6 +82,14 @@ struct s_status {
 
 extern struct s_status lorawan_status;
 
+uint8_t *config_get_dev_eui(void);
+uint8_t *config_get_app_eui(void);
+uint8_t *config_get_app_key(void);
+bool config_get_auto_join(void);
+void config_set_auto_join(bool state);
+uint32_t config_get_join_try_interval(void);
+uint8_t config_get_join_try_count(void);
+uint8_t config_get_lora_mode(void);
 uint32_t config_get_max_gps_on_time(void);
 uint32_t config_get_send_repeat_time(void);
 uint32_t config_get_send_min_delay(void);
