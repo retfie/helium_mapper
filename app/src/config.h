@@ -6,7 +6,8 @@
 #define _APP_CONFIG_H_
 
 #include <stdio.h>
-#include <zephyr/lorawan/lorawan.h>
+#include <stdbool.h>
+#include <zephyr/sys/util.h>
 
 struct s_config
 {

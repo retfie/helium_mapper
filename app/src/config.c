@@ -3,6 +3,7 @@
  */
 
 #include "config.h"
+#include <zephyr/lorawan/lorawan.h>
 
 struct s_config config = {
 	.dev_eui = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 },
