@@ -312,8 +312,6 @@ void lora_send_msg(void)
 	if (lorawan_status.msgs_failed > max_failed_msgs ||
 			delta_sent_ok_sec > inactive_time_window_sec) {
 		LOG_ERR("Too many failed msgs: Try to re-join.");
-		// TODO
-		//lorawan_state(ctx, NOT_JOINED);
 		lorawan_state(NOT_JOINED);
 	}
 }
