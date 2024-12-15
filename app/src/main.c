@@ -479,10 +479,10 @@ void send_event(struct s_helium_mapper_ctx *ctx) {
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 static bool should_encrypt_payload()
 {
-	return lorawan_config.payload_key[0] != 0
-		|| memcmp(&lorawan_config.payload_key[0],
-			  &lorawan_config.payload_key[1],
-			  sizeof(lorawan_config.payload_key)-1);
+	return config.payload_key[0] != 0
+		|| memcmp(&config.payload_key[0],
+			  &config.payload_key[1],
+			  sizeof(config.payload_key)-1);
 }
 
 static int encrypt_payload(struct s_helium_mapper_ctx *ctx)
@@ -491,14 +491,14 @@ static int encrypt_payload(struct s_helium_mapper_ctx *ctx)
 	struct tc_aes_key_sched_struct tc_sched;
 
 	/* Sanity check. */
-	assert (sizeof(lorawan_config.payload_key) == TC_AES_KEY_SIZE);
+	assert (sizeof(config.payload_key) == TC_AES_KEY_SIZE);
 
 	memset(&payload_clearbuf, 0, sizeof(payload_clearbuf));
 	memset(&payload_encbuf, 0, sizeof(payload_encbuf));
 
 	memcpy(&payload_clearbuf, &mapper_data, sizeof(mapper_data));
 
-	(void)tc_aes128_set_encrypt_key(&tc_sched, lorawan_config.payload_key);
+	(void)tc_aes128_set_encrypt_key(&tc_sched, config.payload_key);
 
 	/* Use HWRNG to seed the PRNG.  Reuse the payload_encbuf buffer. */
 	err = entropy_get_entropy(ctx->entropy_dev,

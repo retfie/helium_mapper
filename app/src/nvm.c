@@ -22,8 +22,8 @@ struct hm_nvm_setting_descr {
 		.name = STRINGIFY(_member),					\
 		.setting_name =							\
 			HELIUM_MAPPER_SETTINGS_BASE "/" STRINGIFY(_member),	\
-		.offset = offsetof(struct s_lorawan_config, _member),			\
-		.size = sizeof(((struct s_lorawan_config *)0)->_member),		\
+		.offset = offsetof(struct s_config, _member),			\
+		.size = sizeof(((struct s_config *)0)->_member),		\
 	}
 
 static const struct hm_nvm_setting_descr hm_nvm_setting_descriptors[] = {
@@ -45,7 +45,7 @@ void hm_lorawan_nvm_save_settings(const char *name)
 {
 	LOG_DBG("Saving LoRaWAN settings");
 
-	struct s_lorawan_config *nvm = (void *)&lorawan_config;
+	struct s_config *nvm = get_config();
 
 	for (uint32_t i = 0; i < ARRAY_SIZE(hm_nvm_setting_descriptors); i++) {
 		const struct hm_nvm_setting_descr *descr =
@@ -94,7 +94,7 @@ static int hm_on_setting_loaded(const char *key, size_t len,
 			   void *cb_arg, void *param)
 {
 	int err = 0;
-	struct s_lorawan_config *nvm = param;
+	struct s_config *nvm = param;
 
 	LOG_DBG("Key: %s", key);
 
@@ -121,12 +121,13 @@ static int hm_on_setting_loaded(const char *key, size_t len,
 int config_nvm_data_restore(void)
 {
 	int err = 0;
+	struct s_config *nvm = get_config();
 
 	LOG_DBG("Restoring helium_mapper config settings");
 
 	err = settings_load_subtree_direct(HELIUM_MAPPER_SETTINGS_BASE,
 					   hm_on_setting_loaded,
-					   (void *)&lorawan_config);
+					   nvm);
 	if (err) {
 		LOG_ERR("Could not load config settings, err %d", err);
 		return err;

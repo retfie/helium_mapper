@@ -74,7 +74,7 @@ static const char *lorawan_state_str(enum lorawan_state_e state)
 
 void lorawan_state(enum lorawan_state_e state)
 {
-	uint32_t join_try_interval_sec = lorawan_config.join_try_interval;
+	uint32_t join_try_interval_sec = config_get_join_try_interval();
 
 	LOG_INF("LoraWAN state set to: %s", lorawan_state_str(state));
 
@@ -84,7 +84,7 @@ void lorawan_state(enum lorawan_state_e state)
 		// TODO
 		//led_enable(&led_green, 0);
 
-		if (!lorawan_config.auto_join) {
+		if (!config_get_auto_join()) {
 			LOG_WRN("Join is not enabled");
 			break;
 		}
@@ -102,7 +102,7 @@ void lorawan_state(enum lorawan_state_e state)
 		//led_enable(&led_green, 1);
 
 		status_set_joined(true);
-		lorawan_status.join_retry_sessions_count = 0;
+		status_set_join_retry_sessions_count(0);
 		LOG_INF("Stop Lora join retry timer");
 		k_timer_stop(&lora_join_timer);
 		break;
@@ -125,20 +125,21 @@ static void lora_join_timer_handler(struct k_timer *timer)
 
 int join_lora(void) {
 	struct lorawan_join_config join_cfg;
-	int retry = lorawan_config.join_try_count;
+	int join_try_count = config_get_join_try_count();
+	int retry = join_try_count;
 	int ret = 0;
 
-	join_cfg.mode = lorawan_config.lora_mode;
-	join_cfg.dev_eui = lorawan_config.dev_eui;
-	join_cfg.otaa.join_eui = lorawan_config.app_eui;
-	join_cfg.otaa.app_key = lorawan_config.app_key;
-	join_cfg.otaa.nwk_key = lorawan_config.app_key;
+	join_cfg.mode = config_get_lora_mode();
+	join_cfg.dev_eui = config_get_dev_eui();
+	join_cfg.otaa.join_eui = config_get_app_eui();
+	join_cfg.otaa.app_key = config_get_app_key();
+	join_cfg.otaa.nwk_key = config_get_app_key();
 	join_cfg.otaa.dev_nonce = 0u;
 
-	if (lorawan_config.auto_join) {
+	if (config_get_auto_join()) {
 		while (retry--) {
 			LOG_INF("Joining network over OTAA. Attempt: %d",
-					lorawan_config.join_try_count - retry);
+					join_try_count - retry);
 			ret = lorawan_join(&join_cfg);
 			if (ret == 0) {
 				break;
@@ -156,17 +157,20 @@ int join_lora(void) {
 }
 
 static void lora_join_thread(void *data) {
-	uint16_t retry_count_conf = lorawan_config.max_join_retry_sessions_count;
+	uint16_t retry_count_conf = config_get_max_join_retry_sessions_count();
+	uint16_t retry_count;
 	int err;
 
 	while (1) {
+		retry_count = status_get_join_retry_sessions_count();
 		k_sem_take(&lora_join_sem, K_FOREVER);
 		err = join_lora();
 		if (err) {
-			lorawan_status.join_retry_sessions_count++;
+			retry_count++;
+			status_set_join_retry_sessions_count(retry_count);
 		}
 
-		if (lorawan_status.join_retry_sessions_count > retry_count_conf) {
+		if (retry_count > retry_count_conf) {
 			LOG_ERR("Reboot in 30sec");
 			k_sleep(K_SECONDS(30));
 			sys_reboot(SYS_REBOOT_WARM);
@@ -178,6 +182,7 @@ static void lora_join_thread(void *data) {
 int init_lora(void) {
 	const struct device *lora_dev;
 	int ret;
+	uint8_t data_rate = config_get_data_rate();
 
 	lora_dev = DEVICE_DT_GET(DT_ALIAS(lora0));
 	if (!device_is_ready(lora_dev)) {
@@ -193,7 +198,7 @@ int init_lora(void) {
 
 	lorawan_register_downlink_callback(&downlink_cb);
 	lorawan_register_dr_changed_callback(lorwan_datarate_changed);
-	lorawan_set_datarate(lorawan_config.data_rate);
+	lorawan_set_datarate(data_rate);
 
 	k_sem_init(&lora_join_sem, 0, K_SEM_MAX_LIMIT);
 
@@ -215,12 +220,16 @@ int init_lora(void) {
 
 void lora_send_msg(void)
 {
+	int err;
 	int64_t last_pos_send_ok_sec;
 	int64_t delta_sent_ok_sec;
-	uint8_t msg_type = lorawan_config.confirmed_msg;
-	uint32_t inactive_time_window_sec = lorawan_config.max_inactive_time_window;
-	uint32_t max_failed_msgs = lorawan_config.max_failed_msg;
-	int err;
+	uint8_t msg_type = config_get_confirmed_msg();
+	uint32_t inactive_time_window_sec = config_get_max_inactive_time_window();
+	uint32_t max_failed_msgs = config_get_max_failed_msg();
+	uint8_t app_port = config_get_app_port();
+	uint32_t msgs_sent = status_get_msgs_sent();
+	uint32_t msgs_failed = status_get_msgs_failed();
+	uint32_t msgs_failed_total = status_get_msgs_failed_total();
 	size_t payload_size = 0;
 	uint8_t *payload = NULL;
 	struct s_mapper_data mapper_data;
@@ -255,7 +264,7 @@ void lora_send_msg(void)
 
 	/* Send at least one confirmed msg on every 10 to check connectivity */
 	if (msg_type == LORAWAN_MSG_UNCONFIRMED &&
-			!(lorawan_status.msgs_sent % 10)) {
+			!(msgs_sent % 10)) {
 		msg_type = LORAWAN_MSG_CONFIRMED;
 	}
 
@@ -281,40 +290,39 @@ void lora_send_msg(void)
 
 	// TODO
 	//led_enable(&led_blue, 0);
-	err = lorawan_send(lorawan_config.app_port,
-			payload, payload_size,
-			msg_type);
+	err = lorawan_send(app_port, payload, payload_size, msg_type);
 	if (err < 0) {
 		//TODO: make special LED pattern in this case
-		lorawan_status.msgs_failed++;
-		lorawan_status.msgs_failed_total++;
+		msgs_failed++;
+		status_set_msgs_failed(msgs_failed);
+		msgs_failed_total++;
+		status_set_msgs_failed_total(msgs_failed_total);
 		LOG_ERR("lorawan_send failed: %d", err);
 	} else {
-		lorawan_status.msgs_sent++;
-		lorawan_status.msgs_failed = 0;
+		msgs_sent++;
+		status_set_msgs_sent(msgs_sent);
+		msgs_failed = 0;
+		status_set_msgs_failed(msgs_failed);
 		/* Remember last successfuly send message time */
-		lorawan_status.last_pos_send_ok = k_uptime_get();
+		status_set_last_pos_send_ok(k_uptime_get());
 		LOG_INF("Data sent!");
 	}
 	// TODO
 	//led_enable(&led_blue, 1);
 
 	/* Remember last send time */
-	lorawan_status.last_pos_send = k_uptime_get();
+	status_set_last_pos_send(k_uptime_get());
 
 	// TODO
 	//ctx->gps_fix = false;
 
-	last_pos_send_ok_sec = lorawan_status.last_pos_send_ok;
+	last_pos_send_ok_sec = status_get_last_pos_send_ok();
 	delta_sent_ok_sec = k_uptime_delta(&last_pos_send_ok_sec) / 1000;
 	LOG_INF("delta_sent_ok_sec: %lld", delta_sent_ok_sec);
 
-	if (lorawan_status.msgs_failed > max_failed_msgs ||
+	if (msgs_failed > max_failed_msgs ||
 			delta_sent_ok_sec > inactive_time_window_sec) {
 		LOG_ERR("Too many failed msgs: Try to re-join.");
-		// TODO
-		//lorawan_state(ctx, NOT_JOINED);
 		lorawan_state(NOT_JOINED);
 	}
 }
-
