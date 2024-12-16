@@ -19,6 +19,7 @@ target_sources_ifdef(CONFIG_SETTINGS        app PRIVATE src/nvm.c)
 target_sources_ifdef(CONFIG_SHELL           app PRIVATE src/shell.c)
 target_sources_ifdef(CONFIG_BT              app PRIVATE src/ble.c)
 target_sources_ifdef(CONFIG_UBLOX_MAX7Q     app PRIVATE src/gps.c)
+target_sources_ifdef(CONFIG_PAYLOAD_ENCRYPTION     app PRIVATE src/encryption.c)
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION ver)
 
