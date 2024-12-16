@@ -625,6 +625,7 @@ int main(void)
 {
 	struct s_helium_mapper_ctx *ctx = &g_ctx;
 	struct app_evt_t *ev;
+	int error_timer = 0;
 	int ret;
 
 	LOG_INF("Main start");
@@ -732,11 +733,16 @@ int main(void)
 fail:
 	while (true) {
 		if (led_blue.port) {
-			gpio_pin_set_dt(&led_blue, 0);
-			k_sleep(K_MSEC(250));
 			gpio_pin_set_dt(&led_blue, 1);
+			k_sleep(K_MSEC(250));
+			gpio_pin_set_dt(&led_blue, 0);
 		}
 		k_sleep(K_SECONDS(1));
+		if (!((error_timer++) % 20))
+		{
+			//TODO: show what failed
+			LOG_ERR("Error!");
+		}
 	}
 	return 0;
 }
