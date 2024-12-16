@@ -19,6 +19,7 @@
 #include <zephyr/drivers/uart.h>
 
 #include "config.h"
+#include "leds.h"
 #include "lorawan_app.h"
 #if IS_ENABLED(CONFIG_BATTERY)
 #include "battery.h"
@@ -40,15 +41,6 @@
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(helium_mapper);
-
-#define LED_GREEN_NODE DT_ALIAS(green_led)
-#define LED_BLUE_NODE DT_ALIAS(blue_led)
-/*
- * A build error on this line means your board is unsupported.
- * See the sample documentation for information on how to fix this.
- */
-static struct gpio_dt_spec led_green = GPIO_DT_SPEC_GET(LED_GREEN_NODE, gpios);
-static struct gpio_dt_spec led_blue = GPIO_DT_SPEC_GET(LED_BLUE_NODE, gpios);
 
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
@@ -216,49 +208,6 @@ static void gps_trigger_handler(const struct device *dev,
 	k_sem_give(&evt_sem);
 }
 #endif
-
-int init_leds(void)
-{
-	int err = 0;
-
-	if (!led_green.port) {
-		LOG_INF("Green LED not available");
-	} else if (!device_is_ready(led_green.port)) {
-		LOG_ERR("Green LED device not ready");
-		led_green.port = NULL;
-		err = -ENODEV;
-	} else {
-		/* Init green led as output and turn it on boot */
-		err = gpio_pin_configure_dt(&led_green, GPIO_OUTPUT_INACTIVE);
-		if (err) {
-			LOG_ERR("failed to configure Green LED gpio: %d", err);
-			led_green.port = NULL;
-		}
-	}
-
-	if (!led_blue.port) {
-		LOG_INF("Blue LED not available");
-	} else if (!device_is_ready(led_blue.port)) {
-		LOG_ERR("Blue LED device not ready");
-		led_blue.port = NULL;
-		err = -ENODEV;
-	} else {
-		/* Init blue led as output and turn it on boot */
-		err = gpio_pin_configure_dt(&led_blue, GPIO_OUTPUT_ACTIVE);
-		if (err) {
-			LOG_ERR("failed to configure Blue LED gpio: %d", err);
-			led_blue.port = NULL;
-		}
-	}
-
-	return err;
-}
-
-void led_enable(const struct gpio_dt_spec *led, int enable) {
-	if (led->port) {
-		gpio_pin_set_dt(led, enable);
-	}
-}
 
 static const enum sensor_channel channels[] = {
 	SENSOR_CHAN_ACCEL_X,
@@ -552,7 +501,7 @@ int main(void)
 
 	ret = init_leds();
 	if (ret) {
-		return 1;
+		return ret;
 	}
 
 #if IS_ENABLED(CONFIG_SETTINGS)
@@ -638,12 +587,12 @@ int main(void)
 
 fail:
 	while (true) {
-		if (led_blue.port) {
-			gpio_pin_set_dt(&led_blue, 0);
-			k_sleep(K_MSEC(250));
-			gpio_pin_set_dt(&led_blue, 1);
-		}
+		led_error(LED_OFF);
+		k_sleep(K_MSEC(250));
+		led_error(LED_ON);
+
 		k_sleep(K_SECONDS(1));
 	}
+
 	return 0;
 }
