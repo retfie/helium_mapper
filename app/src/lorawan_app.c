@@ -7,6 +7,7 @@
 #include <zephyr/lorawan/lorawan.h>
 
 #include "config.h"
+#include "leds.h"
 #include "lorawan_app.h"
 #if IS_ENABLED(CONFIG_BATTERY)
 #include "battery.h"
@@ -87,8 +88,7 @@ void lorawan_state(enum lorawan_state_e state)
 	switch (state) {
 	case NOT_JOINED:
 		/* Turn green led on to indicate not joined state */
-		// TODO
-		//led_enable(&led_green, 0);
+		led_join(LED_ON);
 
 		if (!config_get_auto_join()) {
 			LOG_WRN("Join is not enabled");
@@ -104,8 +104,7 @@ void lorawan_state(enum lorawan_state_e state)
 
 	case JOINED:
 		/* Turn green led off on join success */
-		// TODO
-		//led_enable(&led_green, 1);
+		led_join(LED_OFF);
 
 		status_set_joined(true);
 		status_set_join_retry_sessions_count(0);
@@ -285,8 +284,7 @@ void lora_send_msg(void)
 		payload = (uint8_t *)&mapper_data;
 	}
 
-	// TODO
-	//led_enable(&led_blue, 0);
+	led_msg(LED_ON);
 	err = lorawan_send(app_port, payload, payload_size, msg_type);
 	if (err < 0) {
 		//TODO: make special LED pattern in this case
@@ -304,8 +302,7 @@ void lora_send_msg(void)
 		status_set_last_pos_send_ok(k_uptime_get());
 		LOG_INF("Data sent!");
 	}
-	// TODO
-	//led_enable(&led_blue, 1);
+	led_msg(LED_OFF);
 
 	/* Remember last send time */
 	status_set_last_pos_send(k_uptime_get());

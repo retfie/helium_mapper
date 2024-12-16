@@ -12,6 +12,7 @@ test_sysbuild()
 
 target_sources(                     app PRIVATE src/main.c)
 target_sources(                     app PRIVATE src/config.c)
+target_sources(                     app PRIVATE src/leds.c)
 target_sources(                     app PRIVATE boards/board.c)
 target_sources_ifdef(CONFIG_LORA            app PRIVATE src/lorawan_app.c)
 target_sources_ifdef(CONFIG_BATTERY         app PRIVATE src/battery.c)
