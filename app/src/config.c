@@ -47,6 +47,11 @@ struct s_status lorawan_status = {
 	.join_retry_sessions_count = 0,
 };
 
+uint8_t config_get_app_port(void)
+{
+	return config.app_port;
+}
+
 bool config_get_auto_join(void)
 {
 	return config.auto_join;
@@ -70,6 +75,31 @@ uint8_t *config_get_app_key(void)
 void config_set_auto_join(bool state)
 {
 	config.auto_join = state;
+}
+
+uint8_t config_get_data_rate(void)
+{
+	return config.data_rate;
+}
+
+uint8_t config_get_confirmed_msg(void)
+{
+	return config.confirmed_msg;
+}
+
+void config_set_confirmed_msg(uint8_t type)
+{
+	config.confirmed_msg = type;
+}
+
+uint32_t config_get_max_inactive_time_window(void)
+{
+	return config.max_inactive_time_window;
+}
+
+uint32_t config_get_max_failed_msg(void)
+{
+	return config.max_failed_msg;
 }
 
 uint32_t config_get_join_try_interval(void)
@@ -100,6 +130,11 @@ uint32_t config_get_send_repeat_time(void)
 uint32_t config_get_send_min_delay(void)
 {
 	return config.send_min_delay;
+}
+
+uint16_t config_get_max_join_retry_sessions_count(void)
+{
+	return config.max_join_retry_sessions_count;
 }
 
 bool status_is_joined(void)
@@ -147,3 +182,57 @@ time_t status_get_last_pos_send(void)
 	return lorawan_status.last_pos_send;
 }
 
+void status_set_last_pos_send(time_t last_pos_send)
+{
+	lorawan_status.last_pos_send = last_pos_send;
+}
+
+time_t status_get_last_pos_send_ok(void)
+{
+	return lorawan_status.last_pos_send_ok;
+}
+
+void status_set_last_pos_send_ok(time_t last_pos_send_ok)
+{
+	lorawan_status.last_pos_send_ok = last_pos_send_ok;
+}
+
+uint16_t status_get_join_retry_sessions_count(void)
+{
+	return lorawan_status.join_retry_sessions_count;
+}
+
+void status_set_join_retry_sessions_count(uint16_t count)
+{
+	lorawan_status.join_retry_sessions_count = count;
+}
+
+uint32_t status_get_msgs_sent(void)
+{
+	return lorawan_status.msgs_sent;
+}
+
+void status_set_msgs_sent(uint32_t msgs)
+{
+	lorawan_status.msgs_sent = msgs;
+}
+
+uint32_t status_get_msgs_failed(void)
+{
+	return lorawan_status.msgs_failed;
+}
+
+void status_set_msgs_failed(uint32_t msgs)
+{
+	lorawan_status.msgs_failed = msgs;
+}
+
+uint32_t status_get_msgs_failed_total(void)
+{
+	return lorawan_status.msgs_failed_total;
+}
+
+void status_set_msgs_failed_total(uint32_t msgs)
+{
+	lorawan_status.msgs_failed_total = msgs;
+}

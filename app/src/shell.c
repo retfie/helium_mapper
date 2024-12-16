@@ -98,13 +98,13 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	shell_print(shell, "");
 
 	shell_print(shell, "  Auto join        %s", config_get_auto_join() ? "true" : "false");
-	shell_print(shell, "  Data rate/DR+    %d", config.data_rate);
-	shell_print(shell, "  Confirmed msgs   %s", config.confirmed_msg ? "true" : "false");
-	shell_print(shell, "  Max failed msgs  %d", config.max_failed_msg);
-	shell_print(shell, "  Inactive window  %d sec", config.max_inactive_time_window);
-	shell_print(shell, "  Send interval    %d sec", config.send_repeat_time);
-	shell_print(shell, "  Min delay        %d sec", config.send_min_delay);
-	shell_print(shell, "  Max GPS ON time  %d sec", config.max_gps_on_time);
+	shell_print(shell, "  Data rate/DR+    %d", config_get_data_rate());
+	shell_print(shell, "  Confirmed msgs   %s", config_get_confirmed_msg() ? "true" : "false");
+	shell_print(shell, "  Max failed msgs  %d", config_get_max_failed_msg());
+	shell_print(shell, "  Inactive window  %d sec", config_get_max_inactive_time_window());
+	shell_print(shell, "  Send interval    %d sec", config_get_send_repeat_time());
+	shell_print(shell, "  Min delay        %d sec", config_get_send_min_delay());
+	shell_print(shell, "  Max GPS ON time  %d sec", config_get_max_gps_on_time());
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	shell_fprintf(shell, SHELL_NORMAL, "  Payload key      ");
@@ -365,14 +365,14 @@ static int cmd_confirmed_msg(const struct shell *shell, size_t argc, char **argv
 	bool save = false;
 
 	if (argc < 2) {
-		shell_print(shell, "%s", config.confirmed_msg ? "true" : "false");
+		shell_print(shell, "%s", config_get_confirmed_msg() ? "true" : "false");
 	} else {
 		if (!strncmp(argv[1], "true", strlen("true"))) {
-			config.confirmed_msg = LORAWAN_MSG_CONFIRMED;
+			config_set_confirmed_msg(LORAWAN_MSG_CONFIRMED);
 			save = true;
 		}
 		if (!strncmp(argv[1], "false", strlen("false"))) {
-			config.confirmed_msg = LORAWAN_MSG_UNCONFIRMED;
+			config_set_confirmed_msg(LORAWAN_MSG_UNCONFIRMED);
 			save = true;
 		}
 #if IS_ENABLED(CONFIG_SETTINGS)

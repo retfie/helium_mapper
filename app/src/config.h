@@ -82,17 +82,24 @@ struct s_status {
 
 extern struct s_status lorawan_status;
 
+uint8_t config_get_app_port(void);
 uint8_t *config_get_dev_eui(void);
 uint8_t *config_get_app_eui(void);
 uint8_t *config_get_app_key(void);
 bool config_get_auto_join(void);
 void config_set_auto_join(bool state);
+uint8_t config_get_data_rate(void);
+uint8_t config_get_confirmed_msg(void);
+void config_set_confirmed_msg(uint8_t type);
+uint32_t config_get_max_inactive_time_window(void);
+uint32_t config_get_max_failed_msg(void);
 uint32_t config_get_join_try_interval(void);
 uint8_t config_get_join_try_count(void);
 uint8_t config_get_lora_mode(void);
 uint32_t config_get_max_gps_on_time(void);
 uint32_t config_get_send_repeat_time(void);
 uint32_t config_get_send_min_delay(void);
+uint16_t config_get_max_join_retry_sessions_count(void);
 bool status_is_joined(void);
 void status_set_joined(bool state);
 bool status_get_delayed_active(void);
@@ -102,5 +109,16 @@ void status_inc_acc_events(void);
 time_t status_get_last_accel_event(void);
 void status_set_last_accel_event(time_t last_accel_time);
 time_t status_get_last_pos_send(void);
+void status_set_last_pos_send(time_t last_pos_send);
+time_t status_get_last_pos_send_ok(void);
+void status_set_last_pos_send_ok(time_t last_pos_send_ok);
+uint16_t status_get_join_retry_sessions_count(void);
+void status_set_join_retry_sessions_count(uint16_t count);
+uint32_t status_get_msgs_sent(void);
+void status_set_msgs_sent(uint32_t msgs);
+uint32_t status_get_msgs_failed(void);
+void status_set_msgs_failed(uint32_t msgs);
+uint32_t status_get_msgs_failed_total(void);
+void status_set_msgs_failed_total(uint32_t msgs);
 
 #endif /* _APP_CONFIG_H_ */
