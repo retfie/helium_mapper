@@ -68,6 +68,7 @@ struct s_status {
 	bool joined;
 	bool delayed_active;
 	bool gps_pwr_on;
+	bool gps_fix;
 	time_t last_pos_send;
 	time_t last_pos_send_ok;
 	time_t last_accel_event;
@@ -109,6 +110,8 @@ bool status_is_joined(void);
 void status_set_joined(bool state);
 bool status_get_gps_pwr_on(void);
 void status_set_gps_pwr_on(bool state);
+bool status_get_gps_fix(void);
+void status_set_gps_fix(bool state);
 uint64_t status_get_gps_total_on_time(void);
 void status_set_gps_total_on_time(uint64_t time);
 bool status_get_delayed_active(void);

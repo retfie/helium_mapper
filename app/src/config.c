@@ -36,6 +36,7 @@ struct s_status lorawan_status = {
 	.joined = false,
 	.delayed_active = false,
 	.gps_pwr_on = false,
+	.gps_fix = false,
 	.last_pos_send = 0,
 	.last_pos_send_ok = 0,
 	.last_accel_event = 0,
@@ -187,6 +188,16 @@ bool status_get_gps_pwr_on(void)
 void status_set_gps_pwr_on(bool state)
 {
 	lorawan_status.gps_pwr_on = state;
+}
+
+bool status_get_gps_fix(void)
+{
+	return lorawan_status.gps_fix;
+}
+
+void status_set_gps_fix(bool state)
+{
+	lorawan_status.gps_fix = state;
 }
 
 uint64_t status_get_gps_total_on_time(void)
