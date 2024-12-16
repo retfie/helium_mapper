@@ -102,7 +102,7 @@ void lorawan_state(enum lorawan_state_e state)
 		//led_enable(&led_green, 1);
 
 		status_set_joined(true);
-		lorawan_status.join_retry_sessions_count = 0;
+		status_set_join_retry_sessions_count(0);
 		LOG_INF("Stop Lora join retry timer");
 		k_timer_stop(&lora_join_timer);
 		break;

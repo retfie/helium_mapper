@@ -125,27 +125,27 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 
 	struct timespec tp;
 	struct tm tm;
-	int64_t last_pos_send = lorawan_status.last_pos_send;
-	int64_t last_pos_send_ok = lorawan_status.last_pos_send_ok;
-	int64_t last_accel_event = lorawan_status.last_accel_event;
+	int64_t last_pos_send = status_get_last_pos_send();
+	int64_t last_pos_send_ok = status_get_last_pos_send_ok();
+	int64_t last_accel_event = status_get_last_accel_event();
 	int64_t delta_sent = k_uptime_delta(&last_pos_send) / 1000;
 	int64_t delta_sent_ok = k_uptime_delta(&last_pos_send_ok) / 1000;
 	int64_t delta_acc = k_uptime_delta(&last_accel_event) / 1000;
-	uint16_t join_retry_sessions_count = lorawan_status.join_retry_sessions_count;
+	uint16_t join_retry_sessions_count = status_get_join_retry_sessions_count();
 
 	clock_gettime(CLOCK_REALTIME, &tp);
 	gmtime_r(&tp.tv_sec, &tm);
 
 	shell_print(shell, "Device status:");
-	shell_print(shell, "  joined           %s", lorawan_status.joined ? "true" : "false");
-	shell_print(shell, "  delayed active   %s", lorawan_status.delayed_active ? "true" : "false");
-	shell_print(shell, "  gps power on     %s", lorawan_status.gps_pwr_on ? "true" : "false");
-	shell_print(shell, "  messages sent    %d", lorawan_status.msgs_sent);
-	shell_print(shell, "  messages failed  %d", lorawan_status.msgs_failed);
-	shell_print(shell, "  msg failed total %d", lorawan_status.msgs_failed_total);
-	shell_print(shell, "  Accel events     %d", lorawan_status.acc_events);
+	shell_print(shell, "  joined           %s", status_is_joined() ? "true" : "false");
+	shell_print(shell, "  delayed active   %s", status_get_delayed_active() ? "true" : "false");
+	shell_print(shell, "  gps power on     %s", status_get_gps_pwr_on() ? "true" : "false");
+	shell_print(shell, "  messages sent    %d", status_get_msgs_sent());
+	shell_print(shell, "  messages failed  %d", status_get_msgs_failed());
+	shell_print(shell, "  msg failed total %d", status_get_msgs_failed_total());
+	shell_print(shell, "  Accel events     %d", status_get_acc_events());
 	shell_print(shell, "  Join retry sess  %d", join_retry_sessions_count);
-	shell_print(shell, "  Total GPS ON     %lld sec", lorawan_status.gps_total_on_time);
+	shell_print(shell, "  Total GPS ON     %lld sec", status_get_gps_total_on_time());
 	shell_print(shell, "  last msg sent    %lld sec", delta_sent);
 	shell_print(shell, "  last msg sent OK %lld sec", delta_sent_ok);
 	shell_print(shell, "  last acc event   %lld sec", delta_acc);
@@ -388,12 +388,12 @@ static int cmd_confirmed_msg(const struct shell *shell, size_t argc, char **argv
 static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", config.send_repeat_time);
+		shell_print(shell, "%u sec", config_get_send_repeat_time());
 		if (shell_ctx.shell_cb) {
 			shell_ctx.shell_cb(SHELL_CMD_SEND_TIMER_GET, shell_ctx.data);
 		}
 	} else {
-		config.send_repeat_time = atoi(argv[1]);
+		config_set_send_repeat_time(atoi(argv[1]));
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_repeat_time");
 #endif
@@ -408,9 +408,9 @@ static int cmd_send_interval(const struct shell *shell, size_t argc, char **argv
 static int cmd_min_delay(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", config.send_min_delay);
+		shell_print(shell, "%u sec", config_get_send_min_delay());
 	} else {
-		config.send_min_delay = atoi(argv[1]);
+		config_set_send_min_delay(atoi(argv[1]));
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("send_min_delay");
 #endif
@@ -422,9 +422,9 @@ static int cmd_min_delay(const struct shell *shell, size_t argc, char **argv)
 static int cmd_max_gps_on(const struct shell *shell, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(shell, "%u sec", config.max_gps_on_time);
+		shell_print(shell, "%u sec", config_get_max_gps_on_time());
 	} else {
-		config.max_gps_on_time = atoi(argv[1]);
+		config_set_max_gps_on_time(atoi(argv[1]));
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("max_gps_on_time");
 #endif
@@ -438,13 +438,13 @@ static int cmd_data_rate(const struct shell *shell, size_t argc, char **argv)
 	int rate;
 
 	if (argc < 2) {
-		shell_print(shell, "%d", config.data_rate);
+		shell_print(shell, "%d", config_get_data_rate());
 	} else {
 		rate = atoi(argv[1]);
 		if (rate > LORAWAN_DR_15 || rate < LORAWAN_DR_0) {
 			return -EINVAL;
 		}
-		config.data_rate = rate;
+		config_set_data_rate(rate);
 #if IS_ENABLED(CONFIG_SETTINGS)
 		hm_lorawan_nvm_save_settings("data_rate");
 #endif

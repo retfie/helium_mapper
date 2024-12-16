@@ -47,6 +47,11 @@ struct s_status lorawan_status = {
 	.join_retry_sessions_count = 0,
 };
 
+struct s_config *get_config(void)
+{
+	return &config;
+}
+
 uint8_t config_get_app_port(void)
 {
 	return config.app_port;
@@ -82,6 +87,11 @@ uint8_t config_get_data_rate(void)
 	return config.data_rate;
 }
 
+void config_set_data_rate(uint8_t rate)
+{
+	config.data_rate = rate;
+}
+
 uint8_t config_get_confirmed_msg(void)
 {
 	return config.confirmed_msg;
@@ -100,6 +110,16 @@ uint32_t config_get_max_inactive_time_window(void)
 uint32_t config_get_max_failed_msg(void)
 {
 	return config.max_failed_msg;
+}
+
+uint32_t config_get_send_repeat_time(void)
+{
+	return config.send_repeat_time;
+}
+
+void config_set_send_repeat_time(uint32_t time)
+{
+	config.send_repeat_time = time;
 }
 
 uint32_t config_get_join_try_interval(void)
@@ -122,14 +142,19 @@ uint32_t config_get_max_gps_on_time(void)
 	return config.max_gps_on_time;
 }
 
-uint32_t config_get_send_repeat_time(void)
+void config_set_max_gps_on_time(uint32_t time)
 {
-	return config.send_repeat_time;
+	config.max_gps_on_time = time;
 }
 
 uint32_t config_get_send_min_delay(void)
 {
 	return config.send_min_delay;
+}
+
+void config_set_send_min_delay(uint32_t time)
+{
+	config.send_min_delay = time;
 }
 
 uint16_t config_get_max_join_retry_sessions_count(void)
@@ -145,6 +170,26 @@ bool status_is_joined(void)
 void status_set_joined(bool state)
 {
 	lorawan_status.joined = state;
+}
+
+bool status_get_gps_pwr_on(void)
+{
+	return lorawan_status.gps_pwr_on;
+}
+
+void status_set_gps_pwr_on(bool state)
+{
+	lorawan_status.gps_pwr_on = state;
+}
+
+uint64_t status_get_gps_total_on_time(void)
+{
+	return lorawan_status.gps_total_on_time;
+}
+
+void status_set_gps_total_on_time(uint64_t time)
+{
+	lorawan_status.gps_total_on_time = time;
 }
 
 bool status_get_delayed_active(void)

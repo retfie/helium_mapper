@@ -51,9 +51,6 @@ struct s_config
 #endif
 };
 
-//TODO to remove and replace with methods !!!
-extern struct s_config config;
-
 struct s_mapper_data
 {
 	uint32_t lat;
@@ -80,8 +77,7 @@ struct s_status {
 	uint16_t join_retry_sessions_count;
 };
 
-extern struct s_status lorawan_status;
-
+struct s_config *get_config(void);
 uint8_t config_get_app_port(void);
 uint8_t *config_get_dev_eui(void);
 uint8_t *config_get_app_eui(void);
@@ -89,6 +85,7 @@ uint8_t *config_get_app_key(void);
 bool config_get_auto_join(void);
 void config_set_auto_join(bool state);
 uint8_t config_get_data_rate(void);
+void config_set_data_rate(uint8_t rate);
 uint8_t config_get_confirmed_msg(void);
 void config_set_confirmed_msg(uint8_t type);
 uint32_t config_get_max_inactive_time_window(void);
@@ -97,11 +94,18 @@ uint32_t config_get_join_try_interval(void);
 uint8_t config_get_join_try_count(void);
 uint8_t config_get_lora_mode(void);
 uint32_t config_get_max_gps_on_time(void);
+void config_set_max_gps_on_time(uint32_t time);
 uint32_t config_get_send_repeat_time(void);
+void config_set_send_repeat_time(uint32_t time);
 uint32_t config_get_send_min_delay(void);
+void config_set_send_min_delay(uint32_t time);
 uint16_t config_get_max_join_retry_sessions_count(void);
 bool status_is_joined(void);
 void status_set_joined(bool state);
+bool status_get_gps_pwr_on(void);
+void status_set_gps_pwr_on(bool state);
+uint64_t status_get_gps_total_on_time(void);
+void status_set_gps_total_on_time(uint64_t time);
 bool status_get_delayed_active(void);
 void status_set_delayed_active(bool state);
 uint32_t status_get_acc_events(void);
