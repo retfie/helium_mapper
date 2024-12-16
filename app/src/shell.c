@@ -72,6 +72,9 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 	uint8_t *dev_eui = config_get_dev_eui();
 	uint8_t *app_eui = config_get_app_eui();
 	uint8_t *app_key = config_get_app_key();
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	uint8_t *payload_key = config_get_payload_key();
+#endif
 	int i;
 
 	shell_print(shell, "Device config:");
@@ -108,8 +111,8 @@ static int cmd_config(const struct shell *shell, size_t argc, char **argv)
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	shell_fprintf(shell, SHELL_NORMAL, "  Payload key      ");
-	for (i = 0; i < sizeof(config.payload_key); i++) {
-		shell_fprintf(shell, SHELL_NORMAL, "%02X", config.payload_key[i] & 0xFF);
+	for (i = 0; i < PAYLOAD_KEY_SIZE; i++) {
+		shell_fprintf(shell, SHELL_NORMAL, "%02X", *(payload_key++) & 0xFF);
 	}
 	shell_print(shell, "");
 #endif
@@ -258,6 +261,9 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 	uint8_t *dev_eui = config_get_dev_eui();
 	uint8_t *app_eui = config_get_app_eui();
 	uint8_t *app_key = config_get_app_key();
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+	uint8_t *payload_key = config_get_payload_key();
+#endif
 
 	if (argc < 2) {
 		if (!strncmp(argv[0], "dev_eui", strlen("dev_eui"))) {
@@ -274,8 +280,8 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 		}
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 		else if (!strncmp(argv[0], "payload_key", strlen("payload_key"))) {
-			shell_lorawan_hexdump(shell, config.payload_key,
-					sizeof(config.payload_key), "payload_key ");
+			shell_lorawan_hexdump(shell, payload_key,
+					PAYLOAD_KEY_SIZE, "payload_key ");
 		}
 #endif
 	} else {
@@ -317,7 +323,7 @@ static int cmd_lorawan_keys(const struct shell *shell, size_t argc, char **argv)
 				return -EINVAL;
 			}
 			LOG_HEXDUMP_DBG(buf, len, "payload_key: ");
-			memcpy(config.payload_key, buf, PAYLOAD_KEY_SIZE);
+			memcpy(payload_key, buf, PAYLOAD_KEY_SIZE);
 			save = true;
 		}
 #endif

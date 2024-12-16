@@ -162,6 +162,13 @@ uint16_t config_get_max_join_retry_sessions_count(void)
 	return config.max_join_retry_sessions_count;
 }
 
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+uint8_t *config_get_payload_key(void)
+{
+	return config.payload_key;
+}
+#endif
+
 bool status_is_joined(void)
 {
 	return lorawan_status.joined;
