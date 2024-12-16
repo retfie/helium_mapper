@@ -64,7 +64,22 @@ struct s_mapper_data
 	uint8_t satellites;
 } __packed;
 
+enum init_error_t {
+	BOOT_COMPLETE,
+	ERROR_CONFIG,
+	ERROR_BLE,
+	ERROR_ACCEL,
+	ERROR_ACCEL_TRIGGER,
+	ERROR_GPS,
+	ERROR_GPS_TRIGGER,
+	ERROR_USB,
+	ERROR_SHELL,
+	ERROR_ENCRYPTION,
+	ERROR_LORA,
+};
+
 struct s_status {
+	enum init_error_t boot_status;
 	bool joined;
 	bool delayed_active;
 	bool gps_pwr_on;
@@ -106,6 +121,9 @@ uint16_t config_get_max_join_retry_sessions_count(void);
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 uint8_t *config_get_payload_key(void);
 #endif
+enum init_error_t status_get_boot_status(void);
+void status_set_boot_status(enum init_error_t err_num);
+char const *init_error_to_string(enum init_error_t err_num);
 bool status_is_joined(void);
 void status_set_joined(bool state);
 bool status_get_gps_pwr_on(void);

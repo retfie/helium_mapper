@@ -366,6 +366,7 @@ int init_usb_console(void)
 int main(void)
 {
 	struct s_helium_mapper_ctx *ctx = &g_ctx;
+	enum init_error_t err_num;
 	struct app_evt_t *ev;
 	int ret;
 
@@ -379,6 +380,7 @@ int main(void)
 #if IS_ENABLED(CONFIG_SETTINGS)
 	ret = load_config();
 	if (ret) {
+		status_set_boot_status(ERROR_CONFIG);
 		goto fail;
 	}
 #endif
@@ -388,12 +390,14 @@ int main(void)
 #if IS_ENABLED(CONFIG_SENSOR)
 	ret = init_accel();
 	if (ret) {
+		status_set_boot_status(ERROR_ACCEL);
 		goto fail;
 	}
 #if IS_ENABLED(CONFIG_LIS2DH_TRIGGER)
 	ret = accel_set_trigger_handler(accel_trigger_handler);
 	if (ret) {
 		LOG_ERR("accel_set_trigger_handler failed");
+		status_set_boot_status(ERROR_ACCEL_TRIGGER);
 		goto fail;
 	}
 #endif
@@ -403,12 +407,14 @@ int main(void)
 	ret = init_gps();
 	if (ret) {
 		LOG_ERR("init_gps failed");
+		status_set_boot_status(ERROR_GPS);
 		goto fail;
 	}
 
 	ret = gps_set_trigger_handler(gps_trigger_handler);
 	if (ret) {
 		LOG_ERR("gps_set_trigger_handler  failed");
+		status_set_boot_status(ERROR_GPS_TRIGGER);
 		goto fail;
 	}
 #endif
@@ -416,6 +422,7 @@ int main(void)
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 	ret = init_usb_console();
 	if (ret) {
+		status_set_boot_status(ERROR_USB);
 		goto fail;
 	}
 #endif
@@ -423,6 +430,7 @@ int main(void)
 #if IS_ENABLED(CONFIG_SHELL)
 	ret = init_shell();
 	if (ret) {
+		status_set_boot_status(ERROR_SHELL);
 		goto fail;
 	}
 
@@ -432,6 +440,7 @@ int main(void)
 #if IS_ENABLED(CONFIG_BT)
 	ret = init_ble();
 	if (ret) {
+		err_num = ERROR_BLE;
 		goto fail;
 	}
 #endif
@@ -439,6 +448,7 @@ int main(void)
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	ret = init_encryption();
 	if (ret) {
+		status_set_boot_status(ERROR_ENCRYPTION);
 		goto fail;
 	}
 #endif
@@ -449,9 +459,13 @@ int main(void)
 		LOG_ERR("Rebooting in 30 sec.");
 		k_sleep(K_SECONDS(30));
 		sys_reboot(SYS_REBOOT_WARM);
+		status_set_boot_status(ERROR_LORA);
 		goto fail;
 	}
 #endif
+
+	status_set_boot_status(BOOT_COMPLETE);
+	LOG_INF("%s", init_error_to_string(BOOT_COMPLETE));
 
 	while (true) {
 		LOG_INF("Waiting for events...");
@@ -465,11 +479,16 @@ int main(void)
 	}
 
 fail:
+	err_num = status_get_boot_status();
+	if (err_num != BOOT_COMPLETE)
+	{
+		LOG_ERR("App init fail: %s", init_error_to_string(err_num));
+	}
+
 	while (true) {
 		led_error(LED_OFF);
 		k_sleep(K_MSEC(250));
 		led_error(LED_ON);
-
 		k_sleep(K_SECONDS(1));
 	}
 

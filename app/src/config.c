@@ -33,6 +33,7 @@ struct s_config config = {
 };
 
 struct s_status lorawan_status = {
+	.boot_status = BOOT_COMPLETE,
 	.joined = false,
 	.delayed_active = false,
 	.gps_pwr_on = false,
@@ -298,4 +299,47 @@ uint32_t status_get_msgs_failed_total(void)
 void status_set_msgs_failed_total(uint32_t msgs)
 {
 	lorawan_status.msgs_failed_total = msgs;
+}
+
+enum init_error_t status_get_boot_status(void)
+{
+	return lorawan_status.boot_status;
+}
+
+void status_set_boot_status(enum init_error_t err_num)
+{
+	lorawan_status.boot_status = err_num;
+}
+
+char const *init_error_to_string(enum init_error_t err_num)
+{
+	switch(err_num)
+	{
+	case BOOT_COMPLETE:
+		return STRINGIFY(BOOT_COMPLETE);
+	case ERROR_CONFIG:
+		return STRINGIFY(ERROR_CONFIG);
+	case ERROR_BLE:
+		return STRINGIFY(ERROR_BLE);
+	case ERROR_ACCEL:
+		return STRINGIFY(ERROR_ACCEL);
+	case ERROR_ACCEL_TRIGGER:
+		return STRINGIFY(ERROR_ACCEL_TRIGGER);
+	case ERROR_GPS:
+		return STRINGIFY(ERROR_GPS);
+	case ERROR_GPS_TRIGGER:
+		return STRINGIFY(ERROR_GPS_TRIGGER);
+	case ERROR_USB:
+		return STRINGIFY(ERROR_USB);
+	case ERROR_SHELL:
+		return STRINGIFY(ERROR_SHELL);
+	case ERROR_ENCRYPTION:
+		return STRINGIFY(ERROR_ENCRYPTION);
+	case ERROR_LORA:
+		return STRINGIFY(ERROR_LORA);
+	default:
+		return "Unknow";
+	}
+
+	return STRINGIFY(BOOT_COMPLETE);
 }

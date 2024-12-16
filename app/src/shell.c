@@ -135,11 +135,13 @@ static int cmd_status(const struct shell *shell, size_t argc, char **argv)
 	int64_t delta_sent_ok = k_uptime_delta(&last_pos_send_ok) / 1000;
 	int64_t delta_acc = k_uptime_delta(&last_accel_event) / 1000;
 	uint16_t join_retry_sessions_count = status_get_join_retry_sessions_count();
+	enum init_error_t err_num = status_get_boot_status();
 
 	clock_gettime(CLOCK_REALTIME, &tp);
 	gmtime_r(&tp.tv_sec, &tm);
 
 	shell_print(shell, "Device status:");
+	shell_print(shell, "  boot status      %s", init_error_to_string(err_num));
 	shell_print(shell, "  joined           %s", status_is_joined() ? "true" : "false");
 	shell_print(shell, "  delayed active   %s", status_get_delayed_active() ? "true" : "false");
 	shell_print(shell, "  gps power on     %s", status_get_gps_pwr_on() ? "true" : "false");
