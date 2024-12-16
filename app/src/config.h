@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <zephyr/sys/util.h>
 
+#define PAYLOAD_KEY_SIZE 128/8
+
 struct s_config
 {
 	/* OTAA Device EUI MSB */
@@ -47,7 +49,7 @@ struct s_config
 	uint32_t max_failed_msg;
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	/* AES128 key for encrypting the payload. */
-	uint8_t payload_key[128/8];
+	uint8_t payload_key[PAYLOAD_KEY_SIZE];
 #endif
 };
 
@@ -100,6 +102,9 @@ void config_set_send_repeat_time(uint32_t time);
 uint32_t config_get_send_min_delay(void);
 void config_set_send_min_delay(uint32_t time);
 uint16_t config_get_max_join_retry_sessions_count(void);
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+uint8_t *config_get_payload_key(void);
+#endif
 bool status_is_joined(void);
 void status_set_joined(bool state);
 bool status_get_gps_pwr_on(void);

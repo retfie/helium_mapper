@@ -24,21 +24,17 @@
 #include "battery.h"
 #endif
 #include "nvm.h"
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 #include "gps.h"
+#endif
 #if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
 #endif
 #if IS_ENABLED(CONFIG_BT)
 #include "ble.h"
 #endif
-
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
-#include <tinycrypt/constants.h>
-#include <tinycrypt/cbc_mode.h>
-#include <tinycrypt/ctr_prng.h>
-#include <zephyr/drivers/entropy.h>
-
-#define TC_ALIGN_UP(N,PAGE)	(((N) + (PAGE) - 1) & ~((PAGE) - 1))
+#include "encryption.h"
 #endif
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
@@ -54,13 +50,6 @@ LOG_MODULE_REGISTER(helium_mapper);
 static struct gpio_dt_spec led_green = GPIO_DT_SPEC_GET(LED_GREEN_NODE, gpios);
 static struct gpio_dt_spec led_blue = GPIO_DT_SPEC_GET(LED_BLUE_NODE, gpios);
 
-#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
-#define TC_AES_IV_NBYTES 16
-static uint8_t payload_clearbuf[TC_ALIGN_UP(sizeof(mapper_data),TC_AES_BLOCK_SIZE)];
-static uint8_t payload_encbuf[sizeof(payload_clearbuf) + TC_AES_BLOCK_SIZE];
-static uint8_t enc_aes_iv[TC_AES_IV_NBYTES];	/* Temporary buffer for AES IV. */
-#endif
-
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
 	const struct device *accel_dev;
@@ -68,10 +57,6 @@ struct s_helium_mapper_ctx {
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
 	bool gps_fix;
-#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
-	TCCtrPrng_t prng;
-	const struct device *entropy_dev;
-#endif
 };
 
 struct s_helium_mapper_ctx g_ctx = {
@@ -476,67 +461,6 @@ void send_event(struct s_helium_mapper_ctx *ctx) {
 	}
 }
 
-#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
-static bool should_encrypt_payload()
-{
-	return config.payload_key[0] != 0
-		|| memcmp(&config.payload_key[0],
-			  &config.payload_key[1],
-			  sizeof(config.payload_key)-1);
-}
-
-static int encrypt_payload(struct s_helium_mapper_ctx *ctx)
-{
-	int err;
-	struct tc_aes_key_sched_struct tc_sched;
-
-	/* Sanity check. */
-	assert (sizeof(config.payload_key) == TC_AES_KEY_SIZE);
-
-	memset(&payload_clearbuf, 0, sizeof(payload_clearbuf));
-	memset(&payload_encbuf, 0, sizeof(payload_encbuf));
-
-	memcpy(&payload_clearbuf, &mapper_data, sizeof(mapper_data));
-
-	(void)tc_aes128_set_encrypt_key(&tc_sched, config.payload_key);
-
-	/* Use HWRNG to seed the PRNG.  Reuse the payload_encbuf buffer. */
-	err = entropy_get_entropy(ctx->entropy_dev,
-				  &payload_encbuf[0],
-				  sizeof(payload_encbuf));
-	if (err) {
-		LOG_ERR("ENTROPY: failed to obtain entropy.");
-		return -EIO;
-	}
-	err = tc_ctr_prng_reseed(&ctx->prng, &payload_encbuf[0],
-				 sizeof(payload_encbuf), 0, 0);
-	if (err != TC_CRYPTO_SUCCESS) {
-		LOG_ERR("PRNG failed");
-		return -EIO;
-	}
-
-	/* fill-in IV from PRNG. */
-	err = tc_ctr_prng_generate(&ctx->prng, NULL, 0,
-				   &enc_aes_iv[0], sizeof(enc_aes_iv));
-	if (err != TC_CRYPTO_SUCCESS) {
-		LOG_ERR("PRNG failed: %d", err);
-		return -EIO;
-	}
-	memset(&payload_encbuf, 0, sizeof(payload_encbuf));
-	err = tc_cbc_mode_encrypt(payload_encbuf,
-				  sizeof(payload_encbuf),
-				  &payload_clearbuf[0],
-				  sizeof(payload_clearbuf),
-				  &enc_aes_iv[0],
-				  &tc_sched);
-	if (err != TC_CRYPTO_SUCCESS) {
-		LOG_ERR("payload encrypt failed: %d", err);
-		return -EIO;
-	}
-	return 0;
-}
-#endif
-
 #if IS_ENABLED(CONFIG_SHELL)
 void shell_cb(enum shell_cmd_event event, void *data) {
 	struct s_helium_mapper_ctx *ctx = (struct s_helium_mapper_ctx *)data;
@@ -688,23 +612,9 @@ int main(void)
 #endif
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
-	uint8_t entropy[128];
-
-	ctx->entropy_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_entropy));
-	if (!device_is_ready(ctx->entropy_dev)) {
-		LOG_ERR("ENTROPY: random device not ready!");
-		return 1;
-	}
-	ret = entropy_get_entropy(ctx->entropy_dev, &entropy[0], sizeof(entropy));
+	ret = init_encryption();
 	if (ret) {
-		LOG_ERR("ENTROPY: failed to obtain entropy.");
-		return 1;
-	}
-
-	ret = tc_ctr_prng_init(&ctx->prng, &entropy[0], sizeof(entropy), 0, 0U);
-	if (ret != TC_CRYPTO_SUCCESS) {
-		LOG_ERR("PRNG init error.");
-		return 1;
+		goto fail;
 	}
 #endif
 

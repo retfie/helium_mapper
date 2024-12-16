@@ -14,6 +14,9 @@
 #if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
 #endif
+#if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
+#include "encryption.h"
+#endif
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
@@ -270,17 +273,12 @@ void lora_send_msg(void)
 
 	LOG_INF("Lora send -------------->");
 
-// TODO
-#if 0
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	if (should_encrypt_payload()) {
-		err = encrypt_payload(ctx);
+		err = encrypt_payload(&mapper_data, payload, &payload_size);
 		if (err)
 			return;
-		payload = &payload_encbuf[0];
-		payload_size = sizeof(payload_encbuf);
 	} else
-#endif
 #endif
 	{
 		/* No payload key. Send in clear. */
