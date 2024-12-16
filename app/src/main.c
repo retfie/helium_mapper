@@ -56,12 +56,9 @@ struct s_helium_mapper_ctx {
 	struct k_timer send_timer;
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
-	bool gps_fix;
 };
 
-struct s_helium_mapper_ctx g_ctx = {
-	.gps_fix = false,
-};
+struct s_helium_mapper_ctx g_ctx;
 
 /* Event FIFO */
 
@@ -512,7 +509,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 		   data and old position data if available.
 		*/
 #if IS_ENABLED(CONFIG_LORA)
-		if (!ctx->gps_fix) {
+		if (!status_get_gps_fix()) {
 			lora_send_msg();
 		}
 #endif
@@ -520,7 +517,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 
 	case EV_GPS_FIX:
 		LOG_INF("Event GPS_FIX");
-		ctx->gps_fix = true;
+		status_set_gps_fix(true);
 #if IS_ENABLED(CONFIG_LORA)
 		lora_send_msg();
 #endif

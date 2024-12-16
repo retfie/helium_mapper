@@ -11,6 +11,9 @@
 #if IS_ENABLED(CONFIG_BATTERY)
 #include "battery.h"
 #endif
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
+#include "gps.h"
+#endif
 #if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
 #endif
@@ -244,8 +247,7 @@ void lora_send_msg(void)
 
 	memset(&mapper_data, 0, sizeof(struct s_mapper_data));
 
-	// TODO
-	//mapper_data.fix = ctx->gps_fix ? 1 : 0;
+	mapper_data.fix = status_get_gps_fix() ? 1 : 0;
 
 #if IS_ENABLED(CONFIG_BATTERY)
 	int batt_mV;
@@ -255,11 +257,8 @@ void lora_send_msg(void)
 	}
 #endif
 
-//TODO
-#if 0
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	read_location(&mapper_data);
-#endif
 #endif
 
 	LOG_HEXDUMP_DBG(&mapper_data, sizeof(mapper_data),
@@ -311,8 +310,7 @@ void lora_send_msg(void)
 	/* Remember last send time */
 	status_set_last_pos_send(k_uptime_get());
 
-	// TODO
-	//ctx->gps_fix = false;
+	status_set_gps_fix(false);
 
 	last_pos_send_ok_sec = status_get_last_pos_send_ok();
 	delta_sent_ok_sec = k_uptime_delta(&last_pos_send_ok_sec) / 1000;
