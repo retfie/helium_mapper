@@ -7,9 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/sys/printk.h>
@@ -28,6 +25,9 @@
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 #include "gps.h"
 #endif
+#if IS_ENABLED(CONFIG_SENSOR)
+#include "accelerometer.h"
+#endif
 #if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
 #endif
@@ -44,7 +44,6 @@ LOG_MODULE_REGISTER(helium_mapper);
 
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
-	const struct device *accel_dev;
 	struct k_timer send_timer;
 	struct k_timer delayed_timer;
 	struct k_timer gps_off_timer;
@@ -209,57 +208,8 @@ static void gps_trigger_handler(const struct device *dev,
 }
 #endif
 
-static const enum sensor_channel channels[] = {
-	SENSOR_CHAN_ACCEL_X,
-	SENSOR_CHAN_ACCEL_Y,
-	SENSOR_CHAN_ACCEL_Z,
-};
-
-struct s_accel_values {
-	struct sensor_value val;
-	const char *sign;
-};
-
-static int print_accels(const struct device *dev)
-{
-	int err;
-	struct s_accel_values accel[3] = {
-		{.sign = ""},
-		{.sign = ""},
-		{.sign = ""}
-	};
-
-	err = sensor_sample_fetch(dev);
-	if (err < 0) {
-		LOG_ERR("%s: sensor_sample_fetch() failed: %d", dev->name, err);
-		return err;
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(channels); i++) {
-		err = sensor_channel_get(dev, channels[i], &accel[i].val);
-		if (err < 0) {
-			LOG_ERR("%s: sensor_channel_get(%c) failed: %d\n",
-					dev->name, 'X' + i, err);
-			return err;
-		}
-		if ((accel[i].val.val1 < 0) || (accel[i].val.val2 < 0)) {
-			accel[i].sign = "-";
-			accel[i].val.val1 = abs(accel[i].val.val1);
-			accel[i].val.val2 = abs(accel[i].val.val2);
-		}
-	}
-
-	LOG_INF("%s: %d, %s%d.%06d, %s%d.%06d, %s%d.%06d (m/s^2)",
-		dev->name, status_get_acc_events(),
-		accel[0].sign, accel[0].val.val1, accel[0].val.val2,
-		accel[1].sign, accel[1].val.val1, accel[1].val.val2,
-		accel[2].sign, accel[2].val.val1, accel[2].val.val2);
-
-	return 0;
-}
-
-#ifdef CONFIG_LIS2DH_TRIGGER
-static void trigger_handler(const struct device *dev,
+#if IS_ENABLED(CONFIG_LIS2DH_TRIGGER)
+static void accel_trigger_handler(const struct device *dev,
 		const struct sensor_trigger *trig)
 {
 	struct app_evt_t *ev;
@@ -277,84 +227,6 @@ static void trigger_handler(const struct device *dev,
 	ev->event_type = EV_ACC;
 	app_evt_put(ev);
 	k_sem_give(&evt_sem);
-}
-#endif
-
-#if IS_ENABLED(CONFIG_SENSOR)
-int init_accel(struct s_helium_mapper_ctx *ctx)
-{
-	const struct device *accel_dev;
-	int err = 0;
-
-	accel_dev = DEVICE_DT_GET(DT_ALIAS(accel0));
-	if (!device_is_ready(accel_dev)) {
-		LOG_ERR("%s: device not ready.", accel_dev->name);
-		return -ENODEV;
-	}
-
-	ctx->accel_dev = accel_dev;
-
-	print_accels(accel_dev);
-
-#if CONFIG_LIS2DH_TRIGGER
-	struct sensor_trigger trig;
-	enum sensor_channel chan = SENSOR_CHAN_ACCEL_XYZ;
-
-	if (IS_ENABLED(CONFIG_LIS2DH_ODR_RUNTIME)) {
-		struct sensor_value attr = {
-			.val1 = 10,
-			.val2 = 0,
-		};
-
-		err = sensor_attr_set(accel_dev, chan,
-				SENSOR_ATTR_SAMPLING_FREQUENCY,
-				&attr);
-		if (err != 0) {
-			LOG_ERR("Failed to set odr: %d", err);
-			return err;
-		}
-		LOG_INF("Sampling at %u Hz", attr.val1);
-
-		/* set slope threshold to 30 dps */
-		sensor_degrees_to_rad(30, &attr); /* convert to rad/s */
-
-		if (sensor_attr_set(accel_dev, chan,
-					SENSOR_ATTR_SLOPE_TH, &attr) < 0) {
-			LOG_ERR("Accel: cannot set slope threshold.\n");
-			return err;
-		}
-
-		/* set slope duration to 4 samples */
-		attr.val1 = 4;
-		attr.val2 = 0;
-
-		if (sensor_attr_set(accel_dev, chan,
-					SENSOR_ATTR_SLOPE_DUR, &attr) < 0) {
-			LOG_ERR("Accel: cannot set slope duration.\n");
-			return err;
-		}
-
-#if CONFIG_LIS2DH_ACCEL_HP_FILTERS
-		/* Set High Pass filter for int 1 */
-		attr.val1 = 1U;
-		attr.val2 = 0;
-		if (sensor_attr_set(accel_dev, chan,
-					SENSOR_ATTR_CONFIGURATION, &attr) < 0) {
-			LOG_ERR("Accel: cannot set high pass filter for int 1.");
-			return err;
-		}
-#endif
-	}
-
-	trig.type = SENSOR_TRIG_DELTA;
-	trig.chan = chan;
-
-	err = sensor_trigger_set(accel_dev, &trig, trigger_handler);
-	if (err != 0) {
-		LOG_ERR("Failed to set trigger: %d", err);
-	}
-#endif
-	return err;
 }
 #endif
 
@@ -436,7 +308,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 
 	case EV_ACC:
 		LOG_INF("Event ACC");
-		print_accels(ctx->accel_dev);
+		print_accels();
 		send_event(ctx);
 		break;
 
@@ -514,10 +386,17 @@ int main(void)
 	init_timers(ctx);
 
 #if IS_ENABLED(CONFIG_SENSOR)
-	ret = init_accel(ctx);
+	ret = init_accel();
 	if (ret) {
 		goto fail;
 	}
+#if IS_ENABLED(CONFIG_LIS2DH_TRIGGER)
+	ret = accel_set_trigger_handler(accel_trigger_handler);
+	if (ret) {
+		LOG_ERR("accel_set_trigger_handler failed");
+		goto fail;
+	}
+#endif
 #endif
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
