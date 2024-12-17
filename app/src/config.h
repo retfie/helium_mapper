@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 #include <zephyr/sys/util.h>
 
 #define PAYLOAD_KEY_SIZE 128/8
