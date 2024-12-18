@@ -387,6 +387,14 @@ int main(void)
 
 	init_timers(ctx);
 
+#if IS_ENABLED(CONFIG_BT)
+	ret = init_ble();
+	if (ret) {
+		err_num = ERROR_BLE;
+		goto fail;
+	}
+#endif
+
 #if IS_ENABLED(CONFIG_SENSOR)
 	ret = init_accel();
 	if (ret) {
@@ -435,14 +443,6 @@ int main(void)
 	}
 
 	shell_register_cb(shell_cb, ctx);
-#endif
-
-#if IS_ENABLED(CONFIG_BT)
-	ret = init_ble();
-	if (ret) {
-		err_num = ERROR_BLE;
-		goto fail;
-	}
 #endif
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
