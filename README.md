@@ -29,16 +29,18 @@ To avoid issues with system wide python versions, it's better to prepare Virtual
 ```shell
 python3 -m venv venv
 . venv/bin/activate
-pip3 install west
+(.venv) pip3 install west
 ```
 
 ```shell
 # initialize workspace for the helium_mapper (main branch)
-west init -m https://github.com/retfie/helium_mapper --mr main helium_mapper_project
+(.venv) west init -m https://github.com/retfie/helium_mapper --mr main helium_mapper_project
 # update Zephyr modules
-cd helium_mapper_project/helium_mapper
-west update
-. ../zephyr/zephyr-env.sh
+(.venv) cd helium_mapper_project/helium_mapper
+(.venv) west update
+(.venv) west zephyr-export
+(.venv) west packages pip --install
+(.venv) . ../zephyr/zephyr-env.sh
 ```
 
 ### Build & Run
@@ -48,13 +50,32 @@ The application can be built by running:
 ```shell
 . venv/bin/activate
 . ../zephyr/zephyr-env.sh
-west build -p -b rak4631 --sysbuild -s app
+(.venv) west build -p -b rak4631 --sysbuild -s app
 ```
+
+If BT or/and shell login support is needed:
+```
+(.venv) west build -p -b rak4631 --sysbuild -s app -- -Dapp_SNIPPET="bt;shell-login"
+```
+
+Disable any CONFIG_xxx feature from app domain:
+```
+(.venv) west build -p -b rak4631 --sysbuild -s app -- -Dapp_SNIPPET="bt;shell-login" -Dapp_CONFIG_LOG_BACKEND_UART=n
+```
+
+or from mcuboot domain:
+```
+(.venv) west build -p -b rak4631 --sysbuild -s app -- -Dapp_SNIPPET="bt;shell-login" -Dmcuboot_CONFIG_LOG_BACKEND_UART=n
+```
+
+Add -DSB_CONFIG_xxx for both domains
+
+Look into build/domains.yaml for list of doimains.
 
 Once you have built the application you can flash it by running:
 
 ```shell
-west flash
+(.venv) west flash
 ```
 
 ### Serial terminal
@@ -82,6 +103,7 @@ channel idx=12 die_temp =  24.500000
 
 uart:~$ status
 Device status:
+  boot status      BOOT_COMPLETE
   joined           false
   delayed active   false
   gps power on     false
@@ -97,7 +119,9 @@ Device status:
 ```shell
 uart:~$ config
 Device config:
-  RAK4631 Helium mapper: v3.2.0-rc3-2-g83d4ca7ac8df
+  RAK4631 Helium mapper (built: Dec 21 2024 16:46:59)
+    Kernel ver:    v4.0.0-1996-gf17b82ed4334
+    App ver:       app-v0.6-g5fb1ed072ec9
   Dev EUI          0011223344556677
   APP EUI          0011223344556677
   APP key          00112233445566778899aabbccddeeff
@@ -107,6 +131,7 @@ Device config:
   Send interval    3600 sec
   Min delay        30 sec
   Max GPS ON time  300 sec
+  Payload key      00000000000000000000000000000000
 ```
 
 ```shell
@@ -121,6 +146,8 @@ Subcommands:
   send_interval    :Send interval in seconds
   min_delay        :Min delay between 2 messages in ms
   max_gps_on_time  :Max time GPS is ON if no one using it in seconds
+  data_rate        : Get/set data rate 0-15
+  payload_key      : get/set payload_key [00000000000000000000000000000000]
 ```
 
 Show dev_eui
@@ -258,60 +285,12 @@ cd helium_mapper_project
 west update
 ```
 
-Build MCUboot loader with RTT support
-```
-west build --pristine -b rak4631 -d build_mcuboot_rak4631_dfu bootloader/mcuboot/boot/zephyr -- -DCONFIG_SIZE_OPTIMIZATIONS=y -DCONFIG_MULTITHREADING=y -DCONFIG_BOOT_USB_DFU_WAIT=y -DCONFIG_USE_SEGGER_RTT=y -DCONFIG_RTT_CONSOLE=y -DCONFIG_SERIAL=n -DCONFIG_UART_CONSOLE=n -DCONFIG_BOOT_USB_DFU_WAIT_DELAY_MS=10000
-```
+With migrating to sysbuilds, bootloader (mcuboot) is build as secondary image alongside the app image (helium_mapper).
+west flash command flashes both images to device with help of choosen runner (J-Link/OpenOCD), and after this all consequitive flashes could be done via DFU:
 
-Flash bootloader
-```
-west flash -d build_mcuboot_rak4631_dfu --softreset -r nrfjprog
-```
-After this point, device has DFU capable bootloader, and during boot stays into this mode for 10sec before try to find valid image:
 
 ```
-[2499323.353638] cdc_acm 1-2:1.0: ttyACM1: USB ACM device
-[2499688.730597] usb 1-4.1: USB disconnect, device number 99
-[2499693.211998] usb 1-4.1: new full-speed USB device number 101 using xhci_hcd
-[2499693.342076] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
-[2499693.342086] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
-[2499693.342091] usb 1-4.1: Product: MCUBOOT
-[2499693.342094] usb 1-4.1: Manufacturer: ZEPHYR
-```
-
-NOTE !!!
-Device will try to boot from Slot-0, and it is empty. We must flash any MCUBOOT capable app into it!
-
-build dfu capable app for Slot-0 \
-add -DCONFIG_USB_DFU_REBOOT=y to automatically reboot after successfull image upload, or manually reboot device
-```
-cd helium_mapper
-west build -b rak4631 -s app -- -DCONFIG_USB_DFU_REBOOT=y
-west flash --hex-file build/zephyr/zephyr.signed.hex --softreset -r nrfjprog
-```
-
-If bootloader wasn't built with auto DFU reboot, please reboot device manually. Here is what dmesg should show:
-```
-[2501534.271778] usb 1-4.1: new full-speed USB device number 108 using xhci_hcd
-[2501534.394713] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
-[2501534.394726] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
-[2501534.394730] usb 1-4.1: Product: MCUBOOT
-[2501534.394734] usb 1-4.1: Manufacturer: ZEPHYR
-[2501544.770625] usb 1-4.1: USB disconnect, device number 108
-[2501545.000203] usb 1-4.1: new full-speed USB device number 109 using xhci_hcd
-[2501545.122567] usb 1-4.1: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.02
-[2501545.122579] usb 1-4.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
-[2501545.122583] usb 1-4.1: Product: Zephyr DFU Helium Mapper
-[2501545.122586] usb 1-4.1: Manufacturer: ZEPHYR
-[2501545.188662] cdc_acm 1-4.1:1.0: ttyACM0: USB ACM device
-```
-
-From this point you will have MCUboot capable device, and any new version of app could be uploaded via DFU.\
-( Just make sure that it has mcuboot support and mcuboot shell capabilities, to confirm any new image uploaded ).
-
-Build new version and upload it with DFU util into slot-1:
-```
-dfu-util --alt 1 -d 2fe3:0100 --download build/zephyr/zephyr.signed.bin
+sudo dfu-util --alt 1 -d 2fe3:0100 --download build/zephyr/zephyr.signed.bin
 dfu-util 0.9
 
 Copyright 2005-2009 Weston Schmidt, Harald Welte and OpenMoko Inc.
@@ -341,9 +320,6 @@ Download done.
 state(4) = dfuDNBUSY, status(0) = No error condition is present
 Done!
 ```
-
-Reboot device manually via reset if CONFIG_USB_DFU_REBOOT=y not used.
-
 
 Once new image boots, open serial console to device, and use mcuboot command to confirm new image if its OK, and then reboot device to verify that new image is loaded.
 ```
