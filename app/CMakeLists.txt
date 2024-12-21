@@ -31,6 +31,9 @@ set(APP_VERSION_MAJOR ${CMAKE_MATCH_1})
 string(REGEX MATCH "VERSION_MINOR = ([0-9]*)" _ ${ver})
 set(APP_VERSION_MINOR ${CMAKE_MATCH_1})
 
+string(REGEX MATCH "VERSION_PATCH = ([0-9]*)" _ ${ver})
+set(APP_VERSION_PATCH ${CMAKE_MATCH_1})
+
 if(NOT DEFINED BUILD_VERSION)
   find_package(Git QUIET)
   if(GIT_FOUND)
@@ -56,7 +59,7 @@ if(DEFINED BUILD_VERSION)
 endif()
 
 if (NOT NO_PRINT_VERSION)
-  message(STATUS "App version: ${APP_VERSION_MAJOR}.${APP_VERSION_MINOR} ${APP_BUILD_VERSION_STR}")
+  message(STATUS "App version: ${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH} ${APP_BUILD_VERSION_STR}")
 endif()
 
 configure_file(app_version.h.in app_version.h)
