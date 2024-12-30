@@ -1,0 +1,29 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  u-blox MAX-7Q NMEA gps module support
+
+  Example configuration:
+
+  &uart0 {
+        current-speed = <9600>;
+        ...
+        gnss: u_blox_max7q {
+                compatible = "u-blox,nmea-max7q";
+                status = "okay";
+                enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+        };
+  };
+
+compatible: "u-blox,nmea-max7q"
+
+include:
+  - uart-device.yaml
+
+properties:
+  enable-gpios:
+    type: phandle-array
+    required: false
+    description: |
+      Optional gpio to enable GPS module

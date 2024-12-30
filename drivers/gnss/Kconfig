@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if GNSS
+rsource "Kconfig.u_blox_max7q"
+endif # GNSS

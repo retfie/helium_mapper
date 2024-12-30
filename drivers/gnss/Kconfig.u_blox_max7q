@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config GNSS_NMEA_U_BLOX_MAX7Q
+	bool "U-Blox MAX-7Q GNSS NMEA device"
+	default y
+	depends on GNSS
+	#          DT_HAS_<DT_DRV_COMPAT>_ENABLED
+	depends on DT_HAS_U_BLOX_NMEA_MAX7Q_ENABLED
+	depends on GNSS_REFERENCE_FRAME_WGS84
+	select MODEM_MODULES
+	select MODEM_BACKEND_UART
+	select MODEM_CHAT
+	select GNSS_PARSE
+	select GNSS_NMEA0183
+	select GNSS_NMEA0183_MATCH
+	help
+	  U-Blox MAX-7Q NMEA based GNSS device.
+
+if GNSS_NMEA_U_BLOX_MAX7Q
+
+config GNSS_NMEA_U_BLOX_MAX_7Q_SATELLITES_COUNT
+	int "Maximum satellite count"
+	depends on GNSS_SATELLITES
+	default 24
+	help
+	  Maximum number of satellite that the driver that can be decoded from
+	  the GNSS device. This does not affect the number of devices that the
+	  device is actually tracking, just how many of those can be reported
+	  in the satellites callback.
+
+endif
