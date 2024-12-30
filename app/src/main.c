@@ -308,7 +308,9 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 
 	case EV_ACC:
 		LOG_INF("Event ACC");
+#if IS_ENABLED(CONFIG_SENSOR)
 		print_accels();
+#endif
 		send_event(ctx);
 		break;
 
