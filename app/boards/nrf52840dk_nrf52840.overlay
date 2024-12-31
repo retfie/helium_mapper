@@ -12,7 +12,7 @@
 		green-led = &led1;
 		blue-led = &led2;
 		accel0 = &lis3dh;
-		gps0 = &max7q;
+		gnss = &gnss;
 		lora0 = &lora;
 	};
 
@@ -57,8 +57,8 @@
 	status = "okay";
 	current-speed = <9600>;
 
-	max7q: max7q {
-		compatible = "u-blox,max7q";
+	gnss: u_blox_max7q {
+		compatible = "u-blox,nmea-max7q";
 		status = "okay";
 		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
 	};
