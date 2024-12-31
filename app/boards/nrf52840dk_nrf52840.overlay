@@ -57,10 +57,9 @@
 	status = "okay";
 	current-speed = <9600>;
 
-	gnss: u_blox_max7q {
-		compatible = "u-blox,nmea-max7q";
+	gnss: gnss_nmea_generic {
+		compatible = "gnss-nmea-generic";
 		status = "okay";
-		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
 	};
 };
 
