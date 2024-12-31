@@ -38,9 +38,15 @@
 #include "encryption.h"
 #endif
 
+#include <zephyr/drivers/gnss.h>
+#include <zephyr/drivers/gnss/gnss_publish.h>
+#include <zephyr/device.h>
+
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(helium_mapper);
+
+#define GNSS_MODEM DEVICE_DT_GET(DT_ALIAS(gnss))
 
 struct s_helium_mapper_ctx {
 	const struct device *lora_dev;
@@ -128,6 +134,56 @@ static inline struct app_evt_t *app_evt_alloc(void)
 }
 
 static K_SEM_DEFINE(evt_sem, 0, 1);	/* starts off "not available" */
+
+
+static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
+{
+	uint64_t timepulse_ns;
+	k_ticks_t timepulse;
+
+	LOG_INF("%s lat: %lld", __func__, data->nav_data.latitude);
+	LOG_INF("%s lon: %lld", __func__, data->nav_data.longitude);
+
+	if (data->info.fix_status != GNSS_FIX_STATUS_NO_FIX) {
+		if (gnss_get_latest_timepulse(dev, &timepulse) == 0) {
+			timepulse_ns = k_ticks_to_ns_near64(timepulse);
+			printf("Got a fix @ %lld ns\n", timepulse_ns);
+		} else {
+			printf("Got a fix!\n");
+		}
+	}
+}
+GNSS_DATA_CALLBACK_DEFINE(GNSS_MODEM, gnss_data_cb);
+
+
+void nmea_publish(void)
+{
+	static struct gnss_data test_data;
+
+	LOG_INF("%s nmea publish", __func__);
+
+	/* positive values */
+	test_data.nav_data.latitude = 10000000001;
+	test_data.nav_data.longitude = 20000000002;
+	test_data.nav_data.bearing = 3003;
+	test_data.nav_data.speed = 4004;
+	test_data.nav_data.altitude = 5005;
+
+	test_data.info.satellites_cnt = 6;
+	test_data.info.hdop = 7;
+	test_data.info.fix_status = GNSS_FIX_STATUS_GNSS_FIX;
+	test_data.info.fix_quality = GNSS_FIX_QUALITY_GNSS_PPS;
+
+	test_data.utc.hour = 1;
+	test_data.utc.minute = 2;
+	test_data.utc.millisecond = 3;
+	test_data.utc.month_day = 4;
+	test_data.utc.month = 5;
+	test_data.utc.century_year = 6;
+
+	gnss_publish_data(GNSS_MODEM, &test_data);
+}
+
 
 void update_gps_off_timer(struct s_helium_mapper_ctx *ctx) {
 	uint32_t timeout = config_get_max_gps_on_time();
@@ -303,6 +359,7 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 	switch (ev->event_type) {
 	case EV_TIMER:
 		LOG_INF("Event Timer");
+		nmea_publish();
 		send_event(ctx);
 		break;
 
