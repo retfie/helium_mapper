@@ -5,10 +5,6 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/pm/device.h>
-#include <zephyr/pm/device_runtime.h>
-#include <zephyr/drivers/gnss.h>
-#include <zephyr/drivers/gnss/gnss_publish.h>
 #include <zephyr/device.h>
 
 #include "config.h"
@@ -21,6 +17,7 @@ LOG_MODULE_REGISTER(gps_gnss);
 #define GNSS_MODEM DEVICE_DT_GET(DT_ALIAS(gnss))
 
 static const struct device *dev = GNSS_MODEM;
+gnss_fix_cb_t gnss_fix_cb = NULL;
 
 static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 {
@@ -30,40 +27,43 @@ static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 	if (data->info.fix_status != GNSS_FIX_STATUS_NO_FIX) {
 		if (gnss_get_latest_timepulse(dev, &timepulse) == 0) {
 			timepulse_ns = k_ticks_to_ns_near64(timepulse);
-			printf("Got a fix @ %lld ns\n", timepulse_ns);
+			LOG_INF("Got a fix @ %lld ns\n", timepulse_ns);
 		} else {
-			printf("Got a fix!\n");
+			LOG_INF("Got a fix!\n");
+			if (gnss_fix_cb) {
+				gnss_fix_cb(data);
+			}
 		}
 	}
 }
 GNSS_DATA_CALLBACK_DEFINE(GNSS_MODEM, gnss_data_cb);
 
-int init_gps_gnss(void)
+void gnss_enable(bool enable)
 {
 	int ret;
 
+	if (enable) {
+		ret = pm_device_runtime_get(dev);
+		if (ret) {
+			LOG_ERR("%s: PM can't runtime get", dev->name);
+		}
+	} else {
+		ret = pm_device_runtime_put(dev);
+		if (ret) {
+			LOG_ERR("%s: PM can't runtime put", dev->name);
+		}
+	}
+}
+
+int init_gps_gnss(gnss_fix_cb_t cb)
+{
 	if (!device_is_ready(dev)) {
 		LOG_ERR("%s: device not ready.", dev->name);
 		return -ENODEV;
 	}
 
-#if CONFIG_PM_DEVICE
-#if 0
-	// "gnss-nmea-generic" init as pm_device_init_suspended(dev)
-	ret = pm_device_action_run(dev, PM_DEVICE_ACTION_RESUME);
-	if (ret) {
-		LOG_ERR("pm_device_action_run failed");
-	}
-#else
-	// "u-blox,nmea-max7q"; init as pm_device_runtime_enable(dev)
-	// could be controlled with:
-	ret = pm_device_runtime_get(dev);	// runtime enable
-	//ret |= pm_device_runtime_put(dev);	// runtime disable
-	if (ret) {
-		LOG_ERR("pm_device_action_run failed");
-	}
-#endif
-#endif
+	gnss_fix_cb = cb;
+
 	LOG_INF("%s device is ready.", dev->name);
 
 	return 0;
