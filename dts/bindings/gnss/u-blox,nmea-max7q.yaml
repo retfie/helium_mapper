@@ -1,12 +1,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+
 description: |
   u-blox MAX-7Q NMEA gps module support
 
   Example configuration:
 
-  &uart0 {
+  &uart1 {
         current-speed = <9600>;
         ...
         gnss: u_blox_max7q {

@@ -48,7 +48,7 @@ int init_gps_gnss(void)
 	}
 
 #if CONFIG_PM_DEVICE
-#if 1
+#if 0
 	// "gnss-nmea-generic" init as pm_device_init_suspended(dev)
 	ret = pm_device_action_run(dev, PM_DEVICE_ACTION_RESUME);
 	if (ret) {
@@ -56,15 +56,14 @@ int init_gps_gnss(void)
 	}
 #else
 	// "u-blox,nmea-max7q"; init as pm_device_runtime_enable(dev)
-	// and it's already enabled, but could be controlled via:
-	//ret = pm_device_runtime_get(dev);	// runtime enable
-	//ret = pm_device_runtime_put(dev);	// runtime disable
-	//if (ret) {
-	//	LOG_ERR("pm_device_action_run failed");
-	//}
+	// could be controlled with:
+	ret = pm_device_runtime_get(dev);	// runtime enable
+	//ret |= pm_device_runtime_put(dev);	// runtime disable
+	if (ret) {
+		LOG_ERR("pm_device_action_run failed");
+	}
 #endif
 #endif
-
 	LOG_INF("%s device is ready.", dev->name);
 
 	return 0;
