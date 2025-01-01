@@ -186,6 +186,9 @@ static void gps_off_timer_handler(struct k_timer *timer)
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 	gps_enable(GPS_DISABLE);
 #endif
+#if IS_ENABLED(CONFIG_GNSS)
+	gnss_enable(false);
+#endif
 
 	ev = app_evt_alloc();
 	ev->event_type = EV_NMEA_TRIG_DISABLE;
@@ -203,6 +206,26 @@ static void gps_trigger_handler(const struct device *dev,
 
 	/** Disable NMEA trigger after successful location fix */
 	nmea_trigger_enable(GPS_TRIG_DISABLE);
+
+	ev = app_evt_alloc();
+	ev->event_type = EV_GPS_FIX;
+	app_evt_put(ev);
+	k_sem_give(&evt_sem);
+}
+#endif
+
+#if IS_ENABLED(CONFIG_GNSS)
+static void gnss_fix_handler(const struct gnss_data *data)
+{
+	struct app_evt_t *ev;
+
+	LOG_INF("GPS fix handler");
+
+	LOG_INF("Speed: %u.%03u m/s", data->nav_data.speed / 1000,
+				      data->nav_data.speed % 1000);
+
+	/** Disable GNSS dev after successful location fix */
+	gnss_enable(false);
 
 	ev = app_evt_alloc();
 	ev->event_type = EV_GPS_FIX;
@@ -322,6 +345,9 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 		nmea_trigger_enable(GPS_TRIG_ENABLE);
 #endif
+#if IS_ENABLED(CONFIG_GNSS)
+		gnss_enable(true);
+#endif
 		update_gps_off_timer(ctx);
 		break;
 
@@ -433,7 +459,7 @@ int main(void)
 #endif
 
 #if IS_ENABLED(CONFIG_GNSS)
-	ret = init_gps_gnss();
+	ret = init_gps_gnss(gnss_fix_handler);
 	if (ret) {
 		LOG_ERR("init_gps_gnss failed");
 		status_set_boot_status(ERROR_GPS);
