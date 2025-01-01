@@ -28,4 +28,9 @@ config GNSS_NMEA_U_BLOX_MAX_7Q_SATELLITES_COUNT
 	  device is actually tracking, just how many of those can be reported
 	  in the satellites callback.
 
+config MAX7Q_POWER_ENABLE
+       bool "u-blox max-7q enable gpio"
+       help
+         Enable gpio for u-blox max-7q gps module
+
 endif

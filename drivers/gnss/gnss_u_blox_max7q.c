@@ -154,6 +154,11 @@ static int max7q_suspend(const struct device *dev)
 
 static int max7q_turn_on(const struct device *dev)
 {
+#ifdef CONFIG_MAX7Q_POWER_ENABLE
+	const struct max7q_config *config = dev->config;
+
+	gpio_pin_set_dt(&config->enable, 1);
+#endif
 	LOG_INF("Powered on");
 
 	return 0;
@@ -162,7 +167,11 @@ static int max7q_turn_on(const struct device *dev)
 static int max7q_turn_off(const struct device *dev)
 {
 	struct max7q_data *data = dev->data;
+#ifdef CONFIG_MAX7Q_POWER_ENABLE
+	const struct max7q_config *config = dev->config;
 
+	gpio_pin_set_dt(&config->enable, 0);
+#endif
 	LOG_INF("Powered off");
 
 	return modem_pipe_close(data->uart_pipe, K_SECONDS(10));
