@@ -23,6 +23,13 @@
 		output-ohms = <1500000>;
 		full-ohms = <(1000000 + 1500000)>;
 	};
+
+	gnss_pwr: gnss-pwr-ctrl {
+		compatible = "regulator-fixed";
+		regulator-name = "gnss-pwr-ctrl";
+		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
 };
 
 &adc {
@@ -54,11 +61,12 @@
 
 &uart1 {
 	compatible = "nordic,nrf-uarte";
-	status = "okay";
 	current-speed = <9600>;
+	status = "okay";
 
-	gnss: gnss_nmea_generic {
-		compatible = "gnss-nmea-generic";
+	gnss: u_blox_max7q {
+		compatible = "u-blox,nmea-max7q";
+		vin-supply = <&gnss_pwr>;
 		status = "okay";
 	};
 };
