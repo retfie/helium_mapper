@@ -27,9 +27,9 @@ static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 	if (data->info.fix_status != GNSS_FIX_STATUS_NO_FIX) {
 		if (gnss_get_latest_timepulse(dev, &timepulse) == 0) {
 			timepulse_ns = k_ticks_to_ns_near64(timepulse);
-			LOG_INF("Got a fix @ %lld ns\n", timepulse_ns);
+			LOG_INF("Got a fix @ %lld ns", timepulse_ns);
 		} else {
-			LOG_INF("Got a fix!\n");
+			LOG_INF("Got a fix!");
 			if (gnss_fix_cb) {
 				gnss_fix_cb(data);
 			}
