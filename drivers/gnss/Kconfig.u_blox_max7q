@@ -38,4 +38,10 @@ config GNSS_RUN_INIT_CHAT_SCRIPT
 	help
 	  Enable running of init chat script during resume
 
+config MAX7Q_PM_TIMEOUT_MS
+	int "u-blox max-7q timeout value for PM ready"
+	default 0
+	help
+	  Max timeout value in ms for device to be ready after power on or resume
+
 endif
