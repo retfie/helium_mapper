@@ -89,7 +89,9 @@ static void max7q_await_pm_ready(const struct device *dev)
 
 static int max7q_resume(const struct device *dev)
 {
+#if IS_ENABLED(CONFIG_GNSS_RUN_INIT_CHAT_SCRIPT)
 	const struct max7q_config *config = dev->config;
+#endif
 	struct max7q_data *data = dev->data;
 	int ret;
 
@@ -110,12 +112,14 @@ static int max7q_resume(const struct device *dev)
 		return ret;
 	}
 
+#if IS_ENABLED(CONFIG_GNSS_RUN_INIT_CHAT_SCRIPT)
 	ret = modem_chat_run_script(&data->chat, config->init_chat_script);
 	if (ret < 0) {
 		LOG_ERR("Failed to initialize GNSS");
 		modem_pipe_close(data->uart_pipe, K_SECONDS(10));
 		return ret;
 	}
+#endif
 
 	LOG_INF("Resumed");
 
