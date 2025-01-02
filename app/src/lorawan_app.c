@@ -15,6 +15,9 @@
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 #include "gps.h"
 #endif
+#if IS_ENABLED(CONFIG_GNSS)
+#include "gps_gnss.h"
+#endif
 #if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
 #endif
@@ -257,6 +260,9 @@ void lora_send_msg(void)
 #endif
 
 #if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
+	read_location(&mapper_data);
+#endif
+#if IS_ENABLED(CONFIG_GNSS)
 	read_location(&mapper_data);
 #endif
 

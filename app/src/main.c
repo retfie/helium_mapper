@@ -215,14 +215,11 @@ static void gps_trigger_handler(const struct device *dev,
 #endif
 
 #if IS_ENABLED(CONFIG_GNSS)
-static void gnss_fix_handler(const struct gnss_data *data)
+static void gnss_fix_handler(void)
 {
 	struct app_evt_t *ev;
 
 	LOG_INF("GPS fix handler");
-
-	LOG_INF("Speed: %u.%03u m/s", data->nav_data.speed / 1000,
-				      data->nav_data.speed % 1000);
 
 	/** Disable GNSS trigger after successful location fix */
 	gnss_trigger_set(GPS_TRIG_DISABLE);
