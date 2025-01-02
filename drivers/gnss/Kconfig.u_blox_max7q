@@ -33,4 +33,9 @@ config MAX7Q_POWER_ENABLE
        help
          Enable gpio for u-blox max-7q gps module
 
+config GNSS_RUN_INIT_CHAT_SCRIPT
+	bool
+	help
+	  Enable running of init chat script during resume
+
 endif
