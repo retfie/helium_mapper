@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <stdlib.h>
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 
-#include "config.h"
 #include "gps_gnss.h"
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
@@ -19,6 +19,7 @@ LOG_MODULE_REGISTER(gps_gnss);
 static const struct device *dev = GNSS_MODEM;
 gnss_fix_cb_t gnss_fix_cb;
 bool trigger_enable;
+struct gnss_data m_gnss_data;
 
 static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 {
@@ -36,9 +37,12 @@ static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 	}
 
 	LOG_INF("Got a fix!");
+
 	if (trigger_enable) {
+		/** copy location data to local struct */
+		memcpy(&m_gnss_data, data, sizeof(const struct gnss_data));
 		if (gnss_fix_cb) {
-			gnss_fix_cb(data);
+			gnss_fix_cb();
 		}
 	}
 }
@@ -83,6 +87,45 @@ int gnss_enable(bool enable)
 	}
 
 	return ret;
+}
+
+int print_location_to_str(char *str, uint16_t strsize)
+{
+	int ret;
+	struct navigation_data *nav_data = &m_gnss_data.nav_data;
+	struct gnss_info *info = &m_gnss_data.info;
+
+	const char *fmt = "lat: %s%lli.%09lli, lng: %s%lli.%09lli, "
+			  "bearing %u.%03u, speed %u.%03u, alt: %s%i.%03i, "
+			  "sat: %d, acc: %u.%03u";
+	char *lat_sign = nav_data->latitude < 0 ? "-" : "";
+	char *lon_sign = nav_data->longitude < 0 ? "-" : "";
+	char *alt_sign = nav_data->altitude < 0 ? "-" : "";
+
+	ret = snprintk(str, strsize, fmt,
+		       lat_sign,
+		       llabs(nav_data->latitude) / 1000000000,
+		       llabs(nav_data->latitude) % 1000000000,
+		       lon_sign,
+		       llabs(nav_data->longitude) / 1000000000,
+		       llabs(nav_data->longitude) % 1000000000,
+		       nav_data->bearing / 1000, nav_data->bearing % 1000,
+		       nav_data->speed / 1000, nav_data->speed % 1000,
+		       alt_sign, abs(nav_data->altitude) / 1000,
+		       abs(nav_data->altitude) % 1000,
+		       info->satellites_cnt,
+		       info->hdop / 1000, info->hdop % 1000);
+
+	return (strsize < ret) ? -ENOMEM : 0;
+}
+
+void read_location(struct s_mapper_data *mapper_data)
+{
+	mapper_data->lat = m_gnss_data.nav_data.latitude / 1000;
+	mapper_data->lng = m_gnss_data.nav_data.longitude / 1000;
+	mapper_data->satellites = m_gnss_data.info.satellites_cnt;
+	mapper_data->alt = m_gnss_data.nav_data.altitude / 1000;
+	mapper_data->accuracy = m_gnss_data.info.hdop / 1000;
 }
 
 int init_gps_gnss(gnss_fix_cb_t cb)

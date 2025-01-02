@@ -17,7 +17,12 @@
 #include "config.h"
 #include "battery.h"
 #include "nvm.h"
+#if IS_ENABLED(CONFIG_UBLOX_MAX7Q)
 #include "gps.h"
+#endif
+#if IS_ENABLED(CONFIG_GNSS)
+#include "gps_gnss.h"
+#endif
 #include "shell.h"
 #include "lorawan_app.h"
 
@@ -298,6 +303,26 @@ static int cmd_location(const struct shell *shell, size_t argc, char **argv)
 			lng.val1, lng.val2,
 			alt.val1, alt.val2,
 			acc.val1, acc.val2);
+
+	return 0;
+}
+SHELL_CMD_ARG_REGISTER(location, NULL, "Show GPS location", cmd_location, 1, 0);
+#endif
+
+#if IS_ENABLED(CONFIG_GNSS)
+#define GNSS_LOG_BUF_SIZE 128
+static int cmd_location(const struct shell *shell, size_t argc, char **argv)
+{
+	static char dump_buf[GNSS_LOG_BUF_SIZE];
+	int ret;
+
+	ret = print_location_to_str(dump_buf, GNSS_LOG_BUF_SIZE);
+	if (ret < 0)
+	{
+		shell_print(shell, "err: %d", ret);
+	} else {
+		shell_print(shell, "%s", dump_buf);
+	}
 
 	return 0;
 }

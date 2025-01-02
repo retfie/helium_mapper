@@ -62,9 +62,9 @@ struct s_config
 
 struct s_mapper_data
 {
-	uint32_t lat;
-	uint32_t lng;
-	uint16_t alt;
+	int32_t lat;
+	int32_t lng;
+	int16_t alt;
 	uint16_t accuracy;
 	uint16_t battery;
 	uint8_t fix;
