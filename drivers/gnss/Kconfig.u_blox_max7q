@@ -29,9 +29,9 @@ config GNSS_NMEA_U_BLOX_MAX_7Q_SATELLITES_COUNT
 	  in the satellites callback.
 
 config MAX7Q_POWER_ENABLE
-       bool "u-blox max-7q enable gpio"
-       help
-         Enable gpio for u-blox max-7q gps module
+	bool "u-blox max-7q enable gpio"
+	help
+	  Enable gpio for u-blox max-7q gps module
 
 config GNSS_RUN_INIT_CHAT_SCRIPT
 	bool
