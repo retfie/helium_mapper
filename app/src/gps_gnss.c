@@ -7,6 +7,13 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
+#include <zephyr/sys/timeutil.h>
+
+#if defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC)
+#include <time.h>
+#else
+#include <zephyr/posix/time.h>
+#endif
 
 #include "gps_gnss.h"
 
@@ -20,6 +27,60 @@ static const struct device *dev = GNSS_MODEM;
 gnss_fix_cb_t gnss_fix_cb;
 bool trigger_enable;
 struct gnss_data m_gnss_data;
+
+void set_system_time(const struct gnss_time *utc)
+{
+	struct timespec tp;
+	struct tm tm;
+	int ret;
+
+	clock_gettime(CLOCK_REALTIME, &tp);
+	gmtime_r(&tp.tv_sec, &tm);
+
+	/* centry_year range is 0 - 99, but tm_year is years after 1900,
+	   so for centry_year >= 70 consider it's before 2000, although
+	   this will be valid only until 2069 */
+	if (utc->century_year >= 70) {
+		tm.tm_year = utc->century_year;
+	} else {
+		tm.tm_year = utc->century_year + 100;
+	}
+	tm.tm_mon = utc->month - 1;
+	tm.tm_mday = utc->month_day;
+
+	tm.tm_hour = utc->hour;
+	tm.tm_min = utc->minute;
+	tm.tm_sec = utc->millisecond / 1000;
+
+	LOG_DBG("utc: year %3u, month %2u, day %2u, hour %2u, min %2u, ms  %u",
+		utc->century_year, utc->month,
+		utc->month_day, utc->hour,
+		utc->minute, utc->millisecond);
+
+	LOG_DBG(" tm: year %3u, month %2u, day %2u, hour %2u, min %2u, sec %u",
+		tm.tm_year, tm.tm_mon,
+		tm.tm_mday, tm.tm_hour,
+		tm.tm_min, tm.tm_sec);
+
+	/* Note range allows for a leap second */
+	if ((tm.tm_sec < 0) || (tm.tm_sec > 60)) {
+		LOG_ERR("Invalid second");
+		return;
+	}
+
+	tp.tv_sec = timeutil_timegm(&tm);
+	if (tp.tv_sec == -1) {
+		LOG_ERR("Failed to calculate seconds since Epoch");
+		return;
+	}
+	tp.tv_nsec = 0;
+
+	ret = clock_settime(CLOCK_REALTIME, &tp);
+	if (ret != 0) {
+		LOG_ERR("Could not set date %d", ret);
+		return;
+	}
+}
 
 static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 {
@@ -39,7 +100,8 @@ static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 	LOG_INF("Got a fix!");
 
 	if (trigger_enable) {
-		/** copy location data to local struct */
+		set_system_time(&data->utc);
+		/* copy location data to local struct */
 		memcpy(&m_gnss_data, data, sizeof(const struct gnss_data));
 		if (gnss_fix_cb) {
 			gnss_fix_cb();
