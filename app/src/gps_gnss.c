@@ -52,16 +52,6 @@ void set_system_time(const struct gnss_time *utc)
 	tm.tm_min = utc->minute;
 	tm.tm_sec = utc->millisecond / 1000;
 
-	LOG_DBG("utc: year %3u, month %2u, day %2u, hour %2u, min %2u, ms  %u",
-		utc->century_year, utc->month,
-		utc->month_day, utc->hour,
-		utc->minute, utc->millisecond);
-
-	LOG_DBG(" tm: year %3u, month %2u, day %2u, hour %2u, min %2u, sec %u",
-		tm.tm_year, tm.tm_mon,
-		tm.tm_mday, tm.tm_hour,
-		tm.tm_min, tm.tm_sec);
-
 	/* Note range allows for a leap second */
 	if ((tm.tm_sec < 0) || (tm.tm_sec > 60)) {
 		LOG_ERR("Invalid second");
@@ -93,11 +83,11 @@ static void gnss_data_cb(const struct device *dev, const struct gnss_data *data)
 
 	if (gnss_get_latest_timepulse(dev, &timepulse) == 0) {
 		timepulse_ns = k_ticks_to_ns_near64(timepulse);
-		LOG_INF("Got a fix @ %lld ns", timepulse_ns);
+		LOG_DBG("Got a fix @ %lld ns", timepulse_ns);
 		return;
 	}
 
-	LOG_INF("Got a fix!");
+	LOG_DBG("Got a fix!");
 
 	if (trigger_enable) {
 		set_system_time(&data->utc);
