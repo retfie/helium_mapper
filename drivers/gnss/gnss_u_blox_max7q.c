@@ -93,7 +93,7 @@ static void max7q_await_pm_ready(const struct device *dev)
 
 static int max7q_resume(const struct device *dev)
 {
-#if IS_ENABLED(CONFIG_GNSS_RUN_INIT_CHAT_SCRIPT)
+#if IS_ENABLED(CONFIG_GNSS_RUN_INIT_CHAT_SCRIPT) || IS_ENABLED(CONFIG_MAX7Q_POWER_ENABLE)
 	const struct max7q_config *config = dev->config;
 #endif
 	struct max7q_data *data = dev->data;
@@ -101,6 +101,9 @@ static int max7q_resume(const struct device *dev)
 
 	LOG_INF("Resuming");
 
+#if IS_ENABLED(CONFIG_MAX7Q_POWER_ENABLE)
+	gpio_pin_set_dt(&config->enable, 1);
+#endif
 	max7q_await_pm_ready(dev);
 
 	ret = modem_pipe_open(data->uart_pipe, K_SECONDS(10));
@@ -148,7 +151,11 @@ static void max7q_unlock(const struct device *dev)
 static int max7q_suspend(const struct device *dev)
 {
 	struct max7q_data *data = dev->data;
+#if IS_ENABLED(CONFIG_MAX7Q_POWER_ENABLE)
+	const struct max7q_config *config = dev->config;
 
+	gpio_pin_set_dt(&config->enable, 0);
+#endif
 	LOG_INF("Suspending");
 
 	max7q_await_pm_ready(dev);
@@ -162,11 +169,6 @@ static int max7q_suspend(const struct device *dev)
 
 static int max7q_turn_on(const struct device *dev)
 {
-#ifdef CONFIG_MAX7Q_POWER_ENABLE
-	const struct max7q_config *config = dev->config;
-
-	gpio_pin_set_dt(&config->enable, 1);
-#endif
 	LOG_INF("Powered on");
 
 	return 0;
@@ -175,11 +177,7 @@ static int max7q_turn_on(const struct device *dev)
 static int max7q_turn_off(const struct device *dev)
 {
 	struct max7q_data *data = dev->data;
-#ifdef CONFIG_MAX7Q_POWER_ENABLE
-	const struct max7q_config *config = dev->config;
 
-	gpio_pin_set_dt(&config->enable, 0);
-#endif
 	LOG_INF("Powered off");
 
 	return modem_pipe_close(data->uart_pipe, K_SECONDS(10));
