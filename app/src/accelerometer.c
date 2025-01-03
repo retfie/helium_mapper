@@ -3,7 +3,6 @@
  */
 
 #include <zephyr/device.h>
-#include <zephyr/drivers/sensor.h>
 
 #include "config.h"
 #include "accelerometer.h"
