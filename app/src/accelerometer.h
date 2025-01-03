@@ -5,6 +5,8 @@
 #ifndef _APP_ACCEL_H_
 #define _APP_ACCEL_H_
 
+#include <zephyr/drivers/sensor.h>
+
 static const enum sensor_channel channels[] = {
 	SENSOR_CHAN_ACCEL_X,
 	SENSOR_CHAN_ACCEL_Y,
