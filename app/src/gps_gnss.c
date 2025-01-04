@@ -139,6 +139,7 @@ int gnss_enable(bool enable)
 				LOG_ERR("%s: PM can't runtime get, %d",
 						dev->name, ret);
 			}
+			status_set_gps_pwr_on(true);
 		}
 	} else {
 		if (ret > 0) {
@@ -147,6 +148,7 @@ int gnss_enable(bool enable)
 				LOG_ERR("%s: PM can't runtime put, %d",
 						dev->name, ret);
 			}
+			status_set_gps_pwr_on(false);
 		}
 	}
 
