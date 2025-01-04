@@ -124,17 +124,29 @@ int gnss_trigger_set(bool enable)
 
 int gnss_enable(bool enable)
 {
-	int ret = 0;
+	int ret = pm_device_runtime_usage(dev);
+
+	if (ret < 0) {
+		LOG_ERR("%s: PM can't get runtime usage, %d", dev->name, ret);
+		return ret;
+	}
 
 	if (enable) {
-		ret = pm_device_runtime_get(dev);
-		if (ret) {
-			LOG_ERR("%s: PM can't runtime get", dev->name);
+		/* enable dev only if its use_count is 0 */
+		if (ret == 0) {
+			ret = pm_device_runtime_get(dev);
+			if (ret) {
+				LOG_ERR("%s: PM can't runtime get, %d",
+						dev->name, ret);
+			}
 		}
 	} else {
-		ret = pm_device_runtime_put(dev);
-		if (ret) {
-			LOG_ERR("%s: PM can't runtime put", dev->name);
+		if (ret > 0) {
+			ret = pm_device_runtime_put(dev);
+			if (ret) {
+				LOG_ERR("%s: PM can't runtime put, %d",
+						dev->name, ret);
+			}
 		}
 	}
 
