@@ -27,6 +27,7 @@ static const struct device *dev = GNSS_MODEM;
 gnss_fix_cb_t gnss_fix_cb;
 bool trigger_enable;
 struct gnss_data m_gnss_data;
+int64_t gps_on_time;
 
 void set_system_time(const struct gnss_time *utc)
 {
@@ -124,7 +125,9 @@ int gnss_trigger_set(bool enable)
 
 int gnss_enable(bool enable)
 {
+	uint64_t gps_total_on_time = status_get_gps_total_on_time();
 	int ret = pm_device_runtime_usage(dev);
+	int64_t delta;
 
 	if (ret < 0) {
 		LOG_ERR("%s: PM can't get runtime usage, %d", dev->name, ret);
@@ -139,6 +142,7 @@ int gnss_enable(bool enable)
 				LOG_ERR("%s: PM can't runtime get, %d",
 						dev->name, ret);
 			}
+			gps_on_time = k_uptime_get();
 			status_set_gps_pwr_on(true);
 		}
 	} else {
@@ -149,6 +153,11 @@ int gnss_enable(bool enable)
 						dev->name, ret);
 			}
 			status_set_gps_pwr_on(false);
+			delta = k_uptime_delta(&gps_on_time);
+			gps_total_on_time += (delta / 1000);
+			status_set_gps_total_on_time(gps_total_on_time);
+			LOG_INF("GPS was ON for %lld sec, total: %lld sec",
+					delta / 1000, gps_total_on_time);
 		}
 	}
 
@@ -202,6 +211,7 @@ int init_gps_gnss(gnss_fix_cb_t cb)
 	}
 
 	trigger_enable = false;
+	gps_on_time = 0;
 
 	gnss_fix_cb = cb;
 
