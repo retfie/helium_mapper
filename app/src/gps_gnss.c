@@ -187,8 +187,8 @@ int print_location_to_str(char *str, uint16_t strsize)
 
 void read_location(struct s_mapper_data *mapper_data)
 {
-	mapper_data->lat = m_gnss_data.nav_data.latitude / 1000;
-	mapper_data->lng = m_gnss_data.nav_data.longitude / 1000;
+	mapper_data->lat = m_gnss_data.nav_data.latitude / 10000;
+	mapper_data->lng = m_gnss_data.nav_data.longitude / 10000;
 	mapper_data->satellites = m_gnss_data.info.satellites_cnt;
 	mapper_data->alt = m_gnss_data.nav_data.altitude / 1000;
 	mapper_data->accuracy = m_gnss_data.info.hdop / 1000;
