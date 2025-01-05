@@ -274,6 +274,7 @@ static int max7q_init_chat(const struct device *dev)
 
 static int max7q_init(const struct device *dev)
 {
+	const struct max7q_config *config = dev->config;
 	struct max7q_data *data = dev->data;
 	int ret;
 
@@ -290,6 +291,22 @@ static int max7q_init(const struct device *dev)
 	if (ret < 0) {
 		return ret;
 	}
+
+#ifdef CONFIG_MAX7Q_POWER_ENABLE
+	/* configure GPS enable gpio */
+	if (!device_is_ready(config->enable.port)) {
+		LOG_ERR("Enable GPIO controller not ready");
+		return -ENODEV;
+	}
+
+	/* Configure GPS module enable gpio */
+	ret = gpio_pin_configure_dt(&config->enable, GPIO_OUTPUT_INACTIVE);
+	if (ret < 0) {
+		LOG_ERR("Could not configure enable GPIO (%d)", ret);
+		return ret;
+	}
+	LOG_INF("GPS enable gpio configured");
+#endif
 
 	max7q_pm_changed(dev);
 
