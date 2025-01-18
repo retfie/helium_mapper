@@ -279,7 +279,7 @@ void lora_send_msg(void)
 
 #if IS_ENABLED(CONFIG_PAYLOAD_ENCRYPTION)
 	if (should_encrypt_payload()) {
-		err = encrypt_payload(&mapper_data, payload, &payload_size);
+		err = encrypt_payload(&mapper_data, &payload, &payload_size);
 		if (err)
 			return;
 	} else

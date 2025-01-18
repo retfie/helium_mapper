@@ -36,7 +36,7 @@ bool should_encrypt_payload(void)
 			  PAYLOAD_KEY_SIZE - 1);
 }
 
-int encrypt_payload(struct s_mapper_data *mapper_data, uint8_t *payload,
+int encrypt_payload(struct s_mapper_data *mapper_data, uint8_t **payload,
 		    size_t *payload_size)
 {
 	int err;
@@ -87,8 +87,8 @@ int encrypt_payload(struct s_mapper_data *mapper_data, uint8_t *payload,
 		return -EIO;
 	}
 
+	*payload = payload_encbuf;
 	*payload_size = sizeof(payload_encbuf);
-	memcpy(payload, payload_encbuf, sizeof(payload_encbuf));
 
 	return 0;
 }
