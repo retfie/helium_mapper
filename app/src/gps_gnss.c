@@ -107,7 +107,7 @@ int gnss_trigger_set(bool enable)
 
 	if (enable) {
 		ret = gnss_enable(GPS_ENABLE);
-		if (ret) {
+		if (ret < 0) {
 			return ret;
 		}
 	}
