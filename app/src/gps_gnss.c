@@ -169,22 +169,30 @@ int print_location_to_str(char *str, uint16_t strsize)
 	int ret;
 	struct navigation_data *nav_data = &m_gnss_data.nav_data;
 	struct gnss_info *info = &m_gnss_data.info;
+	struct gnss_time *utc = &m_gnss_data.utc;
+	int year;
 
-	const char *fmt = "lat: %s%lli.%09lli, lng: %s%lli.%09lli, "
-			  "bearing %u.%03u, speed %u.%03u, alt: %s%i.%03i, "
+	const char *fmt = "%04d%02d%02d %02d:%02d:%02d, "
+			  "lat: %s%lli.%09lli, lng: %s%lli.%09lli, "
+			  "speed %u.%03u, alt: %s%i.%03i, "
 			  "sat: %d, acc: %u.%03u";
 	char *lat_sign = nav_data->latitude < 0 ? "-" : "";
 	char *lon_sign = nav_data->longitude < 0 ? "-" : "";
 	char *alt_sign = nav_data->altitude < 0 ? "-" : "";
+	year = utc->century_year >= 70 ?
+	       utc->century_year : utc->century_year + 100;
+	year += 1900;
 
 	ret = snprintk(str, strsize, fmt,
+		       year, utc->month,
+		       utc->month_day, utc->hour,
+		       utc->minute, utc->millisecond / 1000,
 		       lat_sign,
 		       llabs(nav_data->latitude) / 1000000000,
 		       llabs(nav_data->latitude) % 1000000000,
 		       lon_sign,
 		       llabs(nav_data->longitude) / 1000000000,
 		       llabs(nav_data->longitude) % 1000000000,
-		       nav_data->bearing / 1000, nav_data->bearing % 1000,
 		       nav_data->speed / 1000, nav_data->speed % 1000,
 		       alt_sign, abs(nav_data->altitude) / 1000,
 		       abs(nav_data->altitude) % 1000,
