@@ -382,18 +382,6 @@ void app_evt_handler(struct app_evt_t *ev, struct s_helium_mapper_ctx *ctx)
 	} /* switch */
 }
 
-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
-int init_usb_console(void)
-{
-	if (usb_enable(NULL)) {
-		LOG_ERR("USB console init failed");
-		return -ENODEV;
-	}
-
-	return 0;
-}
-#endif
-
 int main(void)
 {
 	struct s_helium_mapper_ctx *ctx = &g_ctx;
@@ -468,8 +456,8 @@ int main(void)
 #endif
 
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
-	ret = init_usb_console();
-	if (ret) {
+	ret = usb_enable(NULL);
+	if (ret && ret != -EALREADY) {
 		status_set_boot_status(ERROR_USB);
 		goto fail;
 	}
