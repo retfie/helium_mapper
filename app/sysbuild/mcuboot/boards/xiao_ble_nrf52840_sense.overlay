@@ -1,0 +1,35 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+/delete-node/ &reserved_partition_0;
+/delete-node/ &code_partition;
+/delete-node/ &storage_partition;
+/delete-node/ &boot_partition;
+
+&flash0 {
+	partitions {
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x00011000>;
+		};
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x00011000 0x00071000>;
+		};
+		slot1_partition: partition@82000 {
+			label = "image-1";
+			reg = <0x00082000 0x00071000>;
+		};
+		storage_partition: partition@f8000 {
+			label = "storage";
+			reg = <0x000f8000 0x00008000>;
+		};
+	};
+};
