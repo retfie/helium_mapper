@@ -22,7 +22,7 @@ int print_accels(void)
 		{.sign = ""}
 	};
 
-	err = sensor_sample_fetch(dev);
+	err = sensor_sample_fetch_chan(dev, SENSOR_CHAN_ACCEL_XYZ);
 	if (err < 0) {
 		LOG_ERR("%s: sensor_sample_fetch() failed: %d", dev->name, err);
 		return err;
@@ -57,53 +57,34 @@ int accel_set_trigger_handler(sensor_trigger_handler_t handler)
 	struct sensor_trigger trig;
 	enum sensor_channel chan = SENSOR_CHAN_ACCEL_XYZ;
 
-	if (IS_ENABLED(CONFIG_LIS2DH_ODR_RUNTIME)) {
-		struct sensor_value attr = {
-			.val1 = 10,
-			.val2 = 0,
-		};
+	struct sensor_value attr = {
+		.val1 = 0,
+		.val2 = 0,
+	};
 
-		err = sensor_attr_set(dev, chan,
-				SENSOR_ATTR_SAMPLING_FREQUENCY,
-				&attr);
-		if (err != 0) {
-			LOG_ERR("Failed to set odr: %d", err);
-			return err;
-		}
-		LOG_INF("Sampling at %u Hz", attr.val1);
-
-		/* set slope threshold to 30 dps */
-		sensor_degrees_to_rad(30, &attr); /* convert to rad/s */
-
-		if (sensor_attr_set(dev, chan,
-					SENSOR_ATTR_SLOPE_TH, &attr) < 0) {
-			LOG_ERR("Accel: cannot set slope threshold.\n");
-			return err;
-		}
-
-		/* set slope duration to 4 samples */
-		attr.val1 = 4;
-		attr.val2 = 0;
-
-		if (sensor_attr_set(dev, chan,
-					SENSOR_ATTR_SLOPE_DUR, &attr) < 0) {
-			LOG_ERR("Accel: cannot set slope duration.\n");
-			return err;
-		}
-
-#if CONFIG_LIS2DH_ACCEL_HP_FILTERS
-		/* Set High Pass filter for int 1 */
-		attr.val1 = 1U;
-		attr.val2 = 0;
-		if (sensor_attr_set(dev, chan,
-				    SENSOR_ATTR_CONFIGURATION, &attr) < 0) {
-			LOG_ERR("Accel: cannot set high pass filter for int 1.");
-			return err;
-		}
-#endif
+	// Acceleration in m/s^2
+	attr.val1 = 20;
+	err = sensor_attr_set(dev, chan,
+			SENSOR_ATTR_FULL_SCALE,
+			&attr);
+	if (err != 0) {
+		LOG_ERR("Failed to set scale: %d", err);
+		return err;
 	}
+	LOG_INF("Acceleration in %d.%d m/s^2", attr.val1, attr.val2);
 
-	trig.type = SENSOR_TRIG_DELTA;
+	// Sampling frequency in Hz
+	attr.val1 = 416;
+	err = sensor_attr_set(dev, chan,
+			SENSOR_ATTR_SAMPLING_FREQUENCY,
+			&attr);
+	if (err != 0) {
+		LOG_ERR("Failed to set odr: %d", err);
+		return err;
+	}
+	LOG_INF("Sampling at %u Hz", attr.val1);
+
+	trig.type = SENSOR_TRIG_DATA_READY;
 	trig.chan = chan;
 
 	err = sensor_trigger_set(dev, &trig, handler);

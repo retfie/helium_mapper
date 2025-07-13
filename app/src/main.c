@@ -231,7 +231,7 @@ static void gnss_fix_handler(void)
 }
 #endif
 
-#if IS_ENABLED(CONFIG_LIS2DH_TRIGGER)
+#if IS_ENABLED(CONFIG_LSM6DSL_TRIGGER)
 static void accel_trigger_handler(const struct device *dev,
 		const struct sensor_trigger *trig)
 {
@@ -420,7 +420,7 @@ int main(void)
 		status_set_boot_status(ERROR_ACCEL);
 		goto fail;
 	}
-#if IS_ENABLED(CONFIG_LIS2DH_TRIGGER)
+#if IS_ENABLED(CONFIG_LSM6DSL_TRIGGER)
 	ret = accel_set_trigger_handler(accel_trigger_handler);
 	if (ret) {
 		LOG_ERR("accel_set_trigger_handler failed");
