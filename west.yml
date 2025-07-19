@@ -16,7 +16,7 @@ manifest:
   projects:
     - name: zephyr
       remote: retfie
-      revision: v4.0.0-SX126xWaitOnBusy_int
+      revision: lsm6dsl_wakeup
       import:
         name-allowlist:
           - cmsis
