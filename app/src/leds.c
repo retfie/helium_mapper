@@ -29,7 +29,7 @@ int init_leds(void)
 		led_green.port = NULL;
 		err = -ENODEV;
 	} else {
-		/* Init green led as output and turn it on boot */
+		/* Init green led as output and turn it OFF on boot */
 		err = gpio_pin_configure_dt(&led_green, GPIO_OUTPUT_INACTIVE);
 		if (err) {
 			LOG_ERR("failed to configure Green LED gpio: %d", err);
@@ -44,8 +44,8 @@ int init_leds(void)
 		led_blue.port = NULL;
 		err = -ENODEV;
 	} else {
-		/* Init blue led as output and turn it on boot */
-		err = gpio_pin_configure_dt(&led_blue, GPIO_OUTPUT_ACTIVE);
+		/* Init blue led as output and turn it OFF on boot */
+		err = gpio_pin_configure_dt(&led_blue, GPIO_OUTPUT_INACTIVE);
 		if (err) {
 			LOG_ERR("failed to configure Blue LED gpio: %d", err);
 			led_blue.port = NULL;

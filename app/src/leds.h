@@ -8,8 +8,8 @@
 #define LED_GREEN_NODE DT_ALIAS(green_led)
 #define LED_BLUE_NODE DT_ALIAS(blue_led)
 
-#define LED_ON 0
-#define LED_OFF 1
+#define LED_ON 1
+#define LED_OFF 0
 
 int init_leds(void);
 void led_join(int value);
